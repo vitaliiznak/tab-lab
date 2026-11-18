@@ -22,7 +22,7 @@
 .flight-head { padding: 9px 16px; background: #20251e; border-bottom: 1px solid var(--edge); }
 .flight-head strong { font-size: 15px; font-weight: 550; }
 .flight-head code, .render-readout, .flight-modes, .scrub, .poster-label { font: 12px/1.4 var(--mono); }
-.kernel-source { text-underline-offset: 3px; }
+.kernel-source { text-underline-offset: 3px; white-space: nowrap; }
 .flight-head code, .render-readout { color: var(--muted); }
 .flight-screen { position: relative; aspect-ratio: 16 / 9; background: #0a0c0b; isolation: isolate; }
 .flight-screen img, .flight-screen canvas, .flight-screen video { display: block; width: 100%; height: 100%; position: absolute; inset: 0; }
@@ -84,7 +84,7 @@
 }
 
 .flight-head div { display: flex; gap: 12px; align-items: center; }
-#flight-expand { border: 1px solid #4b5545; background: transparent; color: var(--ink); border-radius: 4px; padding: 3px 8px; font: 11px var(--mono); cursor: pointer; }
+#flight-expand { white-space: nowrap; border: 1px solid #4b5545; background: transparent; color: var(--ink); border-radius: 4px; padding: 3px 8px; font: 11px var(--mono); cursor: pointer; }
 .flight-deck:fullscreen { width: 100vw; height: 100vh; border: 0; border-radius: 0; display: flex; flex-direction: column; background: #0a0c0b; }
 .flight-deck:fullscreen .flight-screen { flex: 1; min-height: 0; aspect-ratio: auto; }
 .flight-deck:fullscreen .flight-screen :is(canvas,img,video) { object-fit: contain; }
