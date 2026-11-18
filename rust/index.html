@@ -8,6 +8,7 @@
     <title>Rust playground · Tab Lab</title>
     <link rel="icon" href="../mark.svg" />
     <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/rust/playground.css" />
     <script>
       window.coi = { quiet: true, coepCredentialless: () => false };
     </script>
@@ -18,8 +19,9 @@
     <main class="workspace rust">
       <div class="labintro">
         <div class="eyebrow"><i class="rails"></i>Offline toolchain</div>
-        <h1>Rust playground<span>.</span></h1>
-        <p>Edit Rust here and run Cargo inside the tab’s isolated Linux machine.</p>
+        <h1><span id="rust-heading">Rust playground</span><span>.</span></h1>
+        <p><span id="rust-description">Edit Rust here and run Cargo inside the tab’s isolated Linux machine.</span>
+          <a id="rust-feature-link" href="?example=fractal">Try Rust + CUDA</a></p>
       </div>
       <!--GUEST-->
       <p class="mobile-note">
@@ -27,6 +29,7 @@
       </p>
       <div id="gpu-missing" class="notice" hidden>
         WebGPU is unavailable. The CPU examples run with Cargo.
+        <button type="button" id="rust-cpu-choice" hidden>Open Hello + iterators</button>
       </div>
       <div class="rust-tools">
         <label
@@ -46,8 +49,12 @@
       <div class="split">
         <section class="panel editor">
           <header class="panehead">
-            <strong><b class="fileicon">rs</b> src/main.rs</strong
-            ><span class="meta">/work</span>
+            <div class="rust-files" role="group" aria-label="Workspace files">
+              <button type="button" data-rust-file="src/main.rs" aria-pressed="true">src/main.rs</button>
+              <button type="button" data-rust-file="kernels.cu" aria-pressed="false" hidden>kernels.cu</button>
+              <button type="button" data-rust-file="build.rs" aria-pressed="false" hidden>build.rs</button>
+            </div>
+            <span class="meta">/work</span>
           </header>
           <div id="rust-editor"></div>
         </section>

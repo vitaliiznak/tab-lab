@@ -103,7 +103,7 @@ def check_console():
 
 
 def cuda(base, unavailable=False):
-    visit(urljoin(base, 'cuda/'))
+    visit(urljoin(base, 'cuda/?demo=shell'))
     if unavailable:
         wait('!tabLab.gpu && Array.from(document.querySelectorAll("video")).some(v=>v.offsetWidth&&v.readyState>=1)', 10)
         assert val('async () => !(await navigator.gpu?.requestAdapter())')
@@ -310,7 +310,7 @@ def probe(base, cpus):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('url')
-    parser.add_argument('suite',choices=['cuda','rust','cuda-fallback','rust-fallback','probe','tools','live'])
+    parser.add_argument('suite',choices=['cuda','rust','cuda-fallback','rust-fallback','probe','tools','live','cuda-first'])
     parser.add_argument('--cpus',type=int,default=1)
     parser.add_argument('--examples',nargs='+')
     args=parser.parse_args()
@@ -327,6 +327,9 @@ def main():
             cli('open', 'about:blank', '--config='+f.name)
         if args.suite == 'probe':
             probe(args.url,args.cpus)
+        elif args.suite == 'cuda-first':
+            import cuda_first
+            cuda_first.run(args.url)
         elif args.suite == 'live':
             live(args.url,args.cpus)
         elif args.suite == 'tools':

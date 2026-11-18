@@ -1,11 +1,11 @@
 // cudawg GPU core: executes cudawg protocol requests on WebGPU.
 // Used by gpu-worker.js (browser) and test/node-host.mjs (Node + Dawn).
 
-const OP = { MALLOC: 1, FREE: 2, H2D: 3, D2H: 4, REGISTER: 5, LAUNCH: 6, SYNC: 7, MEMSET: 8, D2D: 9 };
+const OP = { MALLOC: 1, FREE: 2, H2D: 3, D2H: 4, REGISTER: 5, LAUNCH: 6, SYNC: 7, MEMSET: 8, D2D: 9, PRESENT: 10 };
 const ERR = { INVALID_VALUE: 1, ALLOC: 2, LAUNCH: 4, BAD_PTR: 17, BAD_IMAGE: 200, UNKNOWN: 999 };
 const enc = new TextEncoder(), dec = new TextDecoder();
 
-export async function createGpuCore(gpu) {
+export async function createGpuCore(gpu, present) {
   const adapter = await gpu.requestAdapter({ powerPreference: 'high-performance' });
   if (!adapter) throw new Error('cudawg: no WebGPU adapter');
   const L = adapter.limits;
@@ -143,6 +143,15 @@ export async function createGpuCore(gpu) {
             } else {
               device.queue.writeBuffer(buf, off, new Uint8Array(n).fill(v));
             }
+            return ok();
+          }
+          case OP.PRESENT: {
+            const buffer = buffers.get(u(1));
+            if (!buffer || !present) return fail(ERR.INVALID_VALUE, 'no presentation surface');
+            const width = u(2), height = u(3), frame = u(4);
+            if (width !== 640 || height !== 360 || buffer.size < width * height * 4)
+              return fail(ERR.INVALID_VALUE, 'invalid presentation extent');
+            await scoped(() => present(device, buffer, width, height, frame));
             return ok();
           }
           case OP.SYNC: {

@@ -59,6 +59,9 @@ cudaError_t cudaSetDevice(int dev);
 cudaError_t cudaGetDeviceProperties(struct cudaDeviceProp *prop, int dev);
 cudaError_t cudaDeviceReset(void);
 
+/* Tab Lab display extension. Present an RGBA buffer on the attached canvas. */
+cudaError_t cudawgPresent(void *pixels, unsigned width, unsigned height, unsigned frame);
+
 cudaError_t cudawgLaunch(cudawg_kernel *k, dim3 grid, dim3 block, void **args);
 
 #endif

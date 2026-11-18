@@ -13,7 +13,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-enum { OP_MALLOC = 1, OP_FREE, OP_H2D, OP_D2H, OP_REGISTER, OP_LAUNCH, OP_SYNC, OP_MEMSET, OP_D2D };
+enum { OP_MALLOC = 1, OP_FREE, OP_H2D, OP_D2H, OP_REGISTER, OP_LAUNCH, OP_SYNC, OP_MEMSET, OP_D2D, OP_PRESENT };
 
 #define CHAN_SIZE (1u << 20)          /* must match kernel driver + JS */
 #define CHUNK (CHAN_SIZE - 64)
@@ -190,6 +190,15 @@ cudaError_t cudaMemset(void *ptr, int value, size_t count) {
   uint32_t off; alloc_t *a = lookup(ptr, &off);
   if (!a || off + count > a->size || ((count | off) & 3)) return g_last = cudaErrorInvalidValue;
   BEGIN(OP_MEMSET); put32(a->id); put32(off); put32((uint32_t)count); put32((uint32_t)(value & 0xff));
+  return call(NULL);
+}
+
+cudaError_t cudawgPresent(void *pixels, unsigned width, unsigned height, unsigned frame) {
+  uint32_t off;
+  alloc_t *buffer = lookup(pixels, &off);
+  if (!buffer || off != 0) return g_last = cudaErrorInvalidDevicePointer;
+  BEGIN(OP_PRESENT);
+  put32(buffer->id); put32(width); put32(height); put32(frame);
   return call(NULL);
 }
 

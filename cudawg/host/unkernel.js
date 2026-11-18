@@ -28,8 +28,28 @@ async function* requests(stream) {
   if (frame !== header || offset) throw new Error('Incomplete cudawg frame');
 }
 
-export async function attachCudawg(vm, gpu, { log = () => {} } = {}) {
-  const core = await createGpuCore(gpu);
+/**
+ * @param {any} vm
+ * @param {GPU} gpu
+ * @param {{log?: (message?: string) => void, canvas?: HTMLCanvasElement}} [options]
+ */
+export async function attachCudawg(vm, gpu, { log = () => {}, canvas } = {}) {
+  let context;
+  async function present(device, buffer, width, height, frame) {
+    if (!context) {
+      context = canvas.getContext('webgpu');
+      if (!context) throw Error('Could not open the WebGPU canvas');
+      context.configure({device, format: 'rgba8unorm', alphaMode: 'opaque',
+        usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT});
+    }
+    const encoder = device.createCommandEncoder();
+    encoder.copyBufferToTexture({buffer, bytesPerRow: width * 4},
+      {texture: context.getCurrentTexture()}, [width, height]);
+    device.queue.submit([encoder.finish()]);
+    await device.queue.onSubmittedWorkDone();
+    canvas.dispatchEvent(new CustomEvent('cudawgframe', {detail: frame}));
+  }
+  const core = await createGpuCore(gpu, canvas ? present : undefined);
   const connections = new Set();
   // WebGPU error scopes are a stack on the device. Keep requests ordered even
   // when several independent guest programs share the adapter.
@@ -63,6 +83,7 @@ export async function attachCudawg(vm, gpu, { log = () => {} } = {}) {
     close() {
       listener.close();
       for (const conn of connections) conn.reset();
+      context?.unconfigure();
       core.device.destroy();
     },
   };

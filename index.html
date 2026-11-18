@@ -3,66 +3,79 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="theme-color" content="#111412" />
-    <title>Tab Lab — Linux in a tab</title>
-    <meta name="description" content="Boot an isolated Linux machine inside your browser tab. Explore Zürich bike data with DuckDB, render a CUDA tunnel on WebGPU, or compile Rust offline." />
+    <meta name="theme-color" content="#101210" />
+    <meta name="lab-root" content="./" />
+    <title>Tab Lab — CUDA in a Linux tab</title>
+    <meta name="description" content="Fly through a live CUDA ray-marched tunnel from an isolated Linux guest in your browser. Edit a Rust and CUDA fractal and compile it with offline Cargo." />
     <link rel="icon" href="./mark.svg" />
     <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/flight.css" />
+    <script>window.coi = { quiet: true, coepCredentialless: () => false };</script>
+    <script src="./coi-serviceworker.js"></script>
   </head>
-  <body>
+  <body data-lab="cuda">
     <!--NAV-->
-    <main class="home">
-      <section class="hero">
-        <div class="intro">
-          <div class="eyebrow"><i class="rails"></i> Browser computing lab</div>
-          <h1>Linux in<br /> a <em>tab.</em></h1>
-          <p>Boot a real, isolated Linux machine inside this browser tab. Your device runs the commands. The browser downloads the tools, and the guest runs without an internet connection.</p>
-          <a class="boot-link" href="./cuda/?inspect=1">Inspect a live Linux guest <span aria-hidden="true">→</span></a>
+    <main class="home launch">
+      <section class="flight-hero" aria-labelledby="flight-title">
+        <div class="flight-intro">
+          <div class="eyebrow"><i class="rails"></i> GPU computing lab</div>
+          <h1 id="flight-title">CUDA in a <br /><em>Linux tab.</em></h1>
+          <p>Fly through a gyroid tunnel on your GPU. A CUDA program running inside this tab’s isolated Linux guest casts a ray for every pixel through WebGPU.</p>
+          <p class="flight-hint">Move the camera, then switch to <strong>Ray steps</strong> to see where the kernel works hardest.</p>
+          <a class="feature-jump" href="./rust/?example=fractal">Build a kernel with Rust <span aria-hidden="true">↗</span></a>
         </div>
-        <figure class="specimen">
-          <div class="scope-head">
-            <span><i class="live-square"></i> Recorded kernel output</span><span>tunnel.cu</span>
+        <section class="flight-deck" id="flight" data-state="starting" aria-label="CUDA tunnel renderer">
+          <header class="flight-head"><strong>Gyroid fly-through</strong><div><a class="kernel-source" href="https://github.com/vitaliiznak/tab-lab/blob/main/cudawg/examples/tunnel.cu"><code>tunnel.cu ↗</code></a><button id="flight-expand" type="button" aria-pressed="false" hidden>Full screen</button></div></header>
+          <div class="flight-screen">
+            <img id="flight-poster" src="./art/tunnel.jpg" alt="" width="640" height="360" />
+            <span class="poster-label" id="poster-label">Recorded preview</span>
+            <canvas id="flight-canvas" width="640" height="360" aria-label="Ray-marched tunnel rendered by the guest CUDA kernel"></canvas>
+            <div id="gpu-missing" hidden><video controls playsinline preload="none" poster="./art/tunnel.jpg" src="./cuda/tunnel.mp4" width="640" height="360" aria-label="Recorded CUDA tunnel"></video></div>
           </div>
-          <div class="frame">
-            <video controls playsinline preload="none" poster="./art/tunnel.jpg" src="./cuda/tunnel.mp4" width="640" height="360"
-              aria-label="Six-second recording of the CUDA gyroid tunnel"></video>
+          <div class="render-readout"><span id="flight-status" role="status">Booting Linux…</span><span>640 × 360 · 230,400 rays</span></div>
+          <div class="flight-controls">
+            <div class="playback"><button id="flight-play" type="button" disabled>Play flight</button>
+              <label class="scrub" for="flight-camera">Camera <output id="camera-position" for="flight-camera">0 / 120</output>
+                <input id="flight-camera" type="range" min="0" max="120" value="0" step="1" disabled />
+              </label>
+            </div>
+            <div class="flight-modes"><label for="flight-view">Kernel view</label>
+              <select id="flight-view" disabled><option value="0">Lit surface</option><option value="1">Ray steps</option></select>
+              <span id="work-legend" hidden>1 <i></i> 90 steps per ray</span>
+            </div>
           </div>
-          <figcaption><span>Gyroid tunnel</span><a href="./cuda/?demo=tunnel">Render on your GPU <span aria-hidden="true">↗</span></a></figcaption>
-        </figure>
+        </section>
       </section>
-      <section class="labs" aria-label="Choose a demo">
-        <a class="labcard datacard" href="./data/">
-          <span class="cardicon data-icon" aria-hidden="true">▥</span>
-          <div><h2>DuckDB data lab</h2><p>Find eleven missing days in Zürich’s bicycle counts.</p></div>
-          <span class="card-arrow" aria-hidden="true">↗</span>
-        </a>
-        <a class="labcard" href="./cuda/">
-          <span class="cardicon gpu-icon" aria-hidden="true">▦</span>
-          <div><h2>CUDA terminal</h2><p>Render a moving tunnel from a Linux shell.</p></div>
-          <span class="card-arrow" aria-hidden="true">↗</span>
-        </a>
-        <a class="labcard rustcard" href="./rust/">
-          <span class="cardicon" aria-hidden="true">{ }</span>
-          <div><h2>Rust playground</h2><p>Edit a program and compile it with offline Cargo.</p></div>
-          <span class="card-arrow" aria-hidden="true">↗</span>
-        </a>
-      </section>
-      <section class="explainer">
-        <h2>Inside the tab</h2>
-        <div>
-          <p>Each lab boots a WebAssembly Linux kernel with an emulated ARM64 CPU and its own filesystem. The guest sees the files the lab mounts for it. Closing or reloading the page discards its running processes and session files.</p>
-          <p>The browser can cache toolchain downloads. DuckDB reads data inside Linux, Cargo compiles there, and CUDA kernels reach your GPU through WebGPU.</p>
+      <a class="rust-feature" id="rust-feature-link" href="./rust/?example=fractal">
+        <img src="./art/mandelbrot.png" width="352" height="256" alt="Mandelbrot set rendered by the Rust and CUDA example" />
+        <div><span class="feature-lang">Rust + CUDA</span><h2>Build the Mandelbrot renderer</h2><p>Edit the Rust driver or its CUDA kernel, then compile with Cargo inside Linux.</p></div>
+        <span class="feature-go">Open playground <b aria-hidden="true">↗</b></span>
+      </a>
+      <section id="cuda-shell" class="home-shell" aria-label="CUDA shell">
+        <header class="work-heading"><div><h2>CUDA shell</h2><p>Run another kernel or type a command in the same guest that renders the tunnel.</p></div><a href="./cuda/?demo=shell">Full terminal ↗</a></header>
+        <div class="panel tty">
+          <header class="panehead"><strong><b class="prompticon">›_</b> Linux terminal</strong><span class="meta">/opt/cuda</span></header>
+          <div id="terminal" aria-label="Interactive Linux terminal"></div>
+          <div class="readout" aria-live="polite"><i id="signal"></i><span id="status">Preparing Linux…</span><span id="machine"></span></div>
+          <div class="quick-commands" aria-label="Guest commands">
+            <button data-cmd="vecadd" aria-label="vecadd" disabled>vecadd</button>
+            <button data-cmd="matmul" aria-label="matmul" disabled>matmul</button>
+            <button data-cmd="reduce" aria-label="reduce" disabled>reduce</button>
+            <button data-cmd="nvidia-smi" aria-label="nvidia-smi" disabled>nvidia-smi</button>
+            <button data-cmd="tunnel" aria-label="tunnel" disabled>tunnel</button>
+            <button data-cmd="interrupt" aria-label="Ctrl+C" disabled>Ctrl+C</button>
+          </div>
         </div>
+        <!--GUEST-->
       </section>
-      <section class="credits" id="credits">
-        <h2>Credits &amp; source</h2>
-        <p>Built with <a href="https://github.com/pithings/unkernel/tree/040e142cd016da066ac018de60fcdcec3201fd24">unkernel</a>,
-          <a href="https://github.com/vitaliiznak/tab-lab/tree/main/cudawg">cudawg</a>, Alpine Linux, DuckDB, xterm.js and CodeMirror.
-          <a href="./licenses/">Licenses and source</a> ·
-          <a href="https://github.com/vitaliiznak/tab-lab">View repository</a>
-        </p>
-      </section>
+      <section class="explainer"><h2>Inside the tab</h2><div>
+        <p>The guest has an ARM64 CPU, a temporary filesystem and no internet connection. Your browser downloads the tools. The CUDA bridge translates supported kernels to WGSL and sends their work to WebGPU.</p>
+        <p><a href="./cuda/?inspect=1">Inspect a live guest</a> · <a href="./data/">Explore the DuckDB data lab</a></p>
+      </div></section>
+      <section class="credits" id="credits"><h2>Credits &amp; source</h2><p>Built with <a href="https://github.com/pithings/unkernel/tree/040e142cd016da066ac018de60fcdcec3201fd24">unkernel</a>, <a href="https://github.com/vitaliiznak/tab-lab/tree/main/cudawg">cudawg</a>, Alpine Linux, DuckDB, xterm.js and CodeMirror.
+        <a href="./licenses/">Licenses and source</a> · <a href="https://github.com/vitaliiznak/tab-lab">View repository</a></p></section>
     </main>
     <!--FOOT-->
+    <script type="module" src="/src/cuda.ts"></script>
   </body>
 </html>

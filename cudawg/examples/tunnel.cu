@@ -1,5 +1,6 @@
 // tunnel.cu: neon fly-through of a gyroid lattice, raymarched on the GPU.
 //   ./tunnel              -> animates in the terminal (truecolor ANSI half blocks)
+//   ./tunnel --screen START END [MODE] -> presents a finite range of camera frames on the browser canvas
 //   ./tunnel --ppm DIR N  -> writes N frames as DIR/f000.ppm ... at 640x360
 #define _POSIX_C_SOURCE 199309L
 #include <stdio.h>
@@ -29,7 +30,7 @@ __device__ float scene(float x, float y, float z) {
 
 __device__ float pal(float t, float phase) { return 0.5f + 0.5f * cosf(6.2831f * (t + phase)); }
 
-__global__ void render(unsigned* img, int W, int H, float time) {
+__global__ void render(unsigned* img, int W, int H, float time, int mode) {
     int px = blockIdx.x * blockDim.x + threadIdx.x;
     int py = blockIdx.y * blockDim.y + threadIdx.y;
     if (px >= W || py >= H) return;
@@ -52,7 +53,9 @@ __global__ void render(unsigned* img, int W, int H, float time) {
     float t = 0.0f;
     float glow = 0.0f;
     int hit = 0;
+    int steps = 0;
     for (int i = 0; i < STEPS; i++) {
+        steps = i + 1;
         float d = scene(cx + dx * t, cy + dy * t, cz + dz * t);
         glow = glow + 1.0f / (1.0f + d * d * 900.0f);
         if (d < 0.002f) { hit = 1; break; }
@@ -90,20 +93,49 @@ __global__ void render(unsigned* img, int W, int H, float time) {
     r = (1.0f - expf(-r * 1.6f)) * vig;
     g = (1.0f - expf(-g * 1.6f)) * vig;
     b = (1.0f - expf(-b * 1.6f)) * vig;
+    // Reveal the work each ray performed, using the counter from the tracing loop.
+    if (mode == 1) {
+        float effort = sqrtf((float)steps / (float)STEPS);
+        r = fminf(1.0f, fmaxf(0.0f, 2.3f * effort - 0.5f));
+        g = fminf(1.0f, fmaxf(0.0f, 2.0f * effort - 0.9f));
+        b = 0.16f + 0.55f * (1.0f - effort);
+    }
     unsigned R = (unsigned)(fminf(fmaxf(r, 0.0f), 1.0f) * 255.0f);
     unsigned G = (unsigned)(fminf(fmaxf(g, 0.0f), 1.0f) * 255.0f);
     unsigned B = (unsigned)(fminf(fmaxf(b, 0.0f), 1.0f) * 255.0f);
-    img[py * W + px] = R | (G << 8) | (B << 16);
+    img[py * W + px] = R | (G << 8) | (B << 16) | 0xff000000u;
+}
+
+static void launch_frame(unsigned* dimg, int W, int H, float t, int mode) {
+    dim3 block(16, 16);
+    dim3 grid((W + 15) / 16, (H + 15) / 16);
+    render<<<grid, block>>>(dimg, W, H, t, mode);
+    if (cudaGetLastError() != cudaSuccess) exit(1);
 }
 
 static void frame(unsigned* dimg, unsigned* himg, int W, int H, float t) {
-    dim3 block(16, 16);
-    dim3 grid((W + 15) / 16, (H + 15) / 16);
-    render<<<grid, block>>>(dimg, W, H, t);
-    if (cudaGetLastError() != cudaSuccess || cudaMemcpy(himg, dimg, W * H * 4, cudaMemcpyDeviceToHost) != cudaSuccess) exit(1);
+    launch_frame(dimg, W, H, t, 0);
+    if (cudaMemcpy(himg, dimg, W * H * 4, cudaMemcpyDeviceToHost) != cudaSuccess) exit(1);
 }
 
 int main(int argc, char** argv) {
+    if ((argc == 4 || argc == 5) && strcmp(argv[1], "--screen") == 0) {
+        const int width = 640, height = 360;
+        int start = atoi(argv[2]), end = atoi(argv[3]);
+        int mode = argc == 5 ? atoi(argv[4]) : 0;
+        if (start < 0 || end > 120 || start > end || mode < 0 || mode > 1) return 2;
+        unsigned *pixels;
+        if (cudaMalloc((void**)&pixels, width * height * 4) != cudaSuccess) return 1;
+        for (int f = start; f <= end; f++) {
+            launch_frame(pixels, width, height, f * 0.075f, mode);
+            if (cudawgPresent(pixels, width, height, (unsigned)f) != cudaSuccess) return 1;
+            if (f < end) {
+                struct timespec delay = { 0, 33000000 };
+                nanosleep(&delay, NULL);
+            }
+        }
+        return cudaFree(pixels) != cudaSuccess;
+    }
     if (argc >= 4 && strcmp(argv[1], "--ppm") == 0) {
         int W = 640, H = 360, n = atoi(argv[3]);
         unsigned *h = malloc(W * H * 4), *d;

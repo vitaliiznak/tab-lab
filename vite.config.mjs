@@ -24,7 +24,7 @@ export default defineConfig({
           function nav(label, key, href) {
             return (
               "<a " +
-              (key === page ? 'aria-current="page" ' : "") +
+              (key === (page === "home" ? "cuda" : page) ? 'aria-current="page" ' : "") +
               'href="' +
               base +
               href +
@@ -37,10 +37,9 @@ export default defineConfig({
             '<header class="top"><div class="sitebar"><a class="brand" href="' +
             base +
             '"><span class="mark" aria-hidden="true">›<i>_</i></span>tab<span class="slash">/</span>lab</a><nav aria-label="Main">' +
-            nav("Overview", "home", "") +
-            nav("DuckDB", "data", "data/") +
-            nav("CUDA", "cuda", "cuda/") +
+            nav("CUDA", "cuda", "") +
             nav("Rust", "rust", "rust/") +
+            nav("DuckDB", "data", "data/") +
             '</nav><a class="source" href="' +
             repo +
             '">GitHub <span aria-hidden="true">↗</span></a></div></header>';

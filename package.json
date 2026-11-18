@@ -9,6 +9,7 @@
   },
   "description": "A real Linux kernel, CUDA over WebGPU and an offline Rust toolchain in the browser.",
   "dependencies": {
+    "@codemirror/lang-cpp": "6.0.3",
     "@codemirror/lang-rust": "6.0.2",
     "@codemirror/language": "6.13.1",
     "@codemirror/state": "6.7.6",

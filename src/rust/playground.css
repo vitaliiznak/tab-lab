@@ -1,0 +1,56 @@
+.rust h1 #rust-heading {
+  color: var(--ink);
+}
+#rust-feature-link,
+#rust-cpu-choice {
+  color: var(--lilac);
+  text-underline-offset: 0.2em;
+}
+#rust-feature-link {
+  margin-inline-start: 0.3em;
+  white-space: nowrap;
+}
+#rust-cpu-choice {
+  margin-inline-start: 0.3em;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.rust-files {
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+  min-width: 0;
+  gap: 0.15rem;
+}
+.rust-files button {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 0.3rem 0.48rem;
+  color: var(--muted);
+  cursor: pointer;
+  font: 500 0.8rem var(--mono);
+  white-space: nowrap;
+}
+.rust-files button[aria-pressed="true"] {
+  background: #2b2837;
+  border-color: #534967;
+  color: #e2d8fa;
+}
+.rust-files button:hover {
+  color: var(--ink);
+}
+@media (max-width: 440px) {
+  .rust .editor .panehead {
+    padding-inline: 0.5rem;
+  }
+  .rust-files button {
+    padding-inline: 0.35rem;
+  }
+  .rust .editor .meta {
+    display: none;
+  }
+}

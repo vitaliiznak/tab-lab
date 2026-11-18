@@ -12,7 +12,8 @@ import {
 import { attachCudawg } from "../cudawg/host/unkernel.js";
 
 export function assetUrl(path: string) {
-  return new URL(path, new URL("../", document.baseURI)).href;
+  const root = document.querySelector<HTMLMetaElement>('meta[name="lab-root"]')?.content ?? "../";
+  return new URL(path, new URL(root, document.baseURI)).href;
 }
 const byId = (id: string) => document.getElementById(id)!;
 export function report(message: string) {
@@ -87,13 +88,18 @@ export function writeTerminal(text: string | Uint8Array) {
   lab.output = (lab.output + printable).slice(-400000);
   return new Promise<void>((resolve) => term.write(text, resolve));
 }
+let shellInputFilter: ((data: string) => boolean) | undefined;
+export function setShellInputFilter(filter?: (data: string) => boolean) {
+  shellInputFilter = filter;
+}
 term.onData((data) => {
+  if (!actionPty && shellInputFilter?.(data)) return;
   void (actionPty ?? pty)?.write(data).catch(() => {});
 });
 export function command(cmd: string) {
   if (pty) {
     void pty.write(cmd).catch(() => {});
-    term.focus();
+    if (!matchMedia("(pointer: coarse)").matches) term.textarea?.focus({ preventScroll: true });
   }
 }
 export function terminalSize() {
@@ -203,6 +209,7 @@ export async function start(prepare: () => Promise<LabSetup>) {
     if (kind !== "data" && navigator.gpu) {
       try {
         const gpu = await attachCudawg(machine, navigator.gpu, {
+          canvas: document.querySelector<HTMLCanvasElement>('#flight-canvas') ?? undefined,
           log: (msg?: string) => report("GPU · " + (msg || "Device event")),
         });
         closeGPU = () => gpu.close();
@@ -288,6 +295,12 @@ export async function start(prepare: () => Promise<LabSetup>) {
     const msg = err instanceof Error ? err.message : String(err);
     byId("signal").className = "error";
     report("Boot failed");
+    const flight = document.querySelector<HTMLCanvasElement>("#flight-canvas");
+    if (flight) {
+      flight.hidden = true;
+      byId("flight-status").textContent = "Linux could not start: " + msg;
+      byId("gpu-missing").hidden = false;
+    }
     writeTerminal("\r\n" + msg + "\r\nReload the page to retry.\r\n");
     await vm?.stop();
   }

@@ -38,7 +38,9 @@ export const actionScript = [
   "  test) cargo test --locked ;;",
   "  clippy) cargo clippy --locked ;;",
   // --emit stdout leaves edits intact on rustfmt errors.
-  "  format) rustfmt --edition 2021 --emit stdout <src/main.rs >/tmp/tab-lab-format.rs && cat /tmp/tab-lab-format.rs >src/main.rs ;;",
+  "  format)",
+  "    case \"$3\" in build.rs) src=build.rs ;; src/main.rs|'') src=src/main.rs ;; *) exit 2 ;; esac",
+  '    rustfmt --edition 2021 --emit stdout <"$src" >/tmp/tab-lab-format.rs && cat /tmp/tab-lab-format.rs >"$src" ;;',
   "  *) exit 2 ;;",
   "esac",
   "",

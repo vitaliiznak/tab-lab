@@ -1,5 +1,6 @@
 import { basicSetup } from "codemirror";
 import { rust } from "@codemirror/lang-rust";
+import { cpp } from "@codemirror/lang-cpp";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
@@ -17,19 +18,24 @@ const colors = HighlightStyle.define([
 
 export function createEditor(
   parent: HTMLElement,
+  file: string,
   doc: string,
   change: (code: string) => void,
 ) {
-  return new EditorView({
-    parent,
-    state: EditorState.create({
+  function createState(file: string, doc: string) {
+    const isCuda = file === "kernels.cu";
+    return EditorState.create({
       doc,
       extensions: [
         basicSetup,
-        rust(),
+        isCuda ? cpp() : rust(),
         syntaxHighlighting(colors),
         EditorView.contentAttributes.of({
-          "aria-label": "Rust source code",
+          "aria-label": isCuda
+            ? "CUDA kernel source code"
+            : file === "build.rs"
+              ? "Rust build script"
+              : "Rust source code",
           spellcheck: "false",
         }),
         EditorView.theme(
@@ -75,6 +81,15 @@ export function createEditor(
           if (update.docChanged) change(update.state.doc.toString());
         }),
       ],
-    }),
-  });
+    });
+  }
+  const view = new EditorView({ parent, state: createState(file, doc) });
+  // Each file gets its own editing history, so undo cannot restore the
+  // previously viewed file into the current one.
+  return {
+    view,
+    open(file: string, doc: string) {
+      view.setState(createState(file, doc));
+    },
+  };
 }

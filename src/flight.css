@@ -1,0 +1,91 @@
+.flight-hero {
+  display: grid;
+  grid-template-columns: minmax(0,.82fr) minmax(0,1.4fr);
+  align-items: center;
+  gap: clamp(24px,4vw,72px);
+  padding: clamp(22px,2.1vw,35px) 0;
+}
+.flight-intro h1 {
+  margin: 16px 0 18px;
+  font-size: clamp(54px,6.5vw,100px);
+  font-weight: 560;
+  line-height: .97;
+  letter-spacing: -.072em;
+}
+.flight-intro h1 em { color: var(--lime); font-style: normal; }
+.flight-intro p { margin: 0; font-size: clamp(16px,1.35vw,20px); line-height: 1.53; color: var(--muted); max-width: 39ch; }
+.flight-intro .flight-hint { margin-top: 15px; font-size: 15px; }
+.flight-hint strong { font-weight: 500; color: var(--ink); }
+.feature-jump { display: inline-flex; gap: 18px; margin-top: 18px; color: var(--lilac); text-underline-offset: 4px; }
+.flight-deck { min-width: 0; border: 1px solid #454c40; background: #181d18; border-radius: 9px; overflow: hidden; }
+.flight-head, .render-readout, .playback, .flight-modes { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.flight-head { padding: 9px 16px; background: #20251e; border-bottom: 1px solid var(--edge); }
+.flight-head strong { font-size: 15px; font-weight: 550; }
+.flight-head code, .render-readout, .flight-modes, .scrub, .poster-label { font: 12px/1.4 var(--mono); }
+.kernel-source { text-underline-offset: 3px; }
+.flight-head code, .render-readout { color: var(--muted); }
+.flight-screen { position: relative; aspect-ratio: 16 / 9; background: #0a0c0b; isolation: isolate; }
+.flight-screen img, .flight-screen canvas, .flight-screen video { display: block; width: 100%; height: 100%; position: absolute; inset: 0; }
+#flight-canvas { visibility: hidden; }
+#flight-canvas.has-frame { visibility: visible; }
+.poster-label { position: absolute; z-index: 1; bottom: 9px; left: 12px; padding: 3px 7px; border-radius: 3px; background: #0c1010d9; color: #d4d8cc; }
+#gpu-missing:not([hidden]) { position: absolute; inset: 0; z-index: 2; }
+.render-readout { font-size: 11px; padding: 7px 15px; border-block: 1px solid var(--edge); background: #121712; }
+#flight-status { color: #c5cdbf; overflow-wrap: anywhere; min-width: 0; }
+.render-readout > :last-child { white-space: nowrap; }
+#flight[data-state="playing"] #flight-status { color: var(--lime); }
+.flight-controls { padding: 12px 15px; }
+.playback { gap: 16px; }
+#flight-play, .quick-commands button, #flight-view { border-radius: 4px; font: 500 13px/1.4 var(--mono); cursor: pointer; }
+#flight-play { border: 1px solid var(--lime); background: var(--lime); color: #192312; min-width: 116px; padding: 8px 10px; }
+.scrub { flex: 1; display: grid; grid-template-columns: 1fr auto; gap: 1px 8px; color: #dce4d5; }
+.scrub output { color: var(--muted); font-size: 11px; }
+.scrub input { grid-column: 1 / -1; width: 100%; margin: 0; accent-color: var(--lime); cursor: pointer; }
+.flight-modes { margin-top: 9px; justify-content: flex-start; color: var(--muted); font-size: 11px; flex-wrap: wrap; gap: 8px; }
+#flight-view { color: var(--ink); border: 1px solid #404a3b; background: #20271d; font-size: 12px; padding: 4px 6px; }
+#work-legend { display: inline-flex; align-items: center; gap: 6px; }
+#work-legend i { height: 5px; width: 42px; background: linear-gradient(to right,#231181,#b62d77,#fff05b); }
+.rust-feature { display: flex; align-items: center; gap: clamp(16px,2.5vw,38px); padding: 16px; border: 1px solid #51435b; color: var(--ink); background: linear-gradient(102deg,#28202c,#1b191f 76%); border-radius: 8px; text-decoration: none; }
+.rust-feature:hover { border-color: var(--lilac); }
+.rust-feature img { width: clamp(100px,12vw,190px); height: 90px; object-fit: cover; border-radius: 4px; image-rendering: pixelated; }
+.rust-feature h2, .work-heading h2 { margin: 3px 0; font-size: clamp(22px,2.3vw,35px); line-height: 1.1; letter-spacing: -.045em; }
+.rust-feature p, .work-heading p { color: var(--muted); margin: 5px 0 0; font-size: 15px; }
+.feature-lang, .feature-go, .work-heading a { color: var(--lilac); font: 12px var(--mono); }
+.feature-go { margin: 0 10px 0 auto; white-space: nowrap; }
+.home-shell { padding-top: 40px; scroll-margin-top: 14px; }
+.work-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+.work-heading a { color: var(--lime); white-space: nowrap; }
+.home-shell #terminal { height: clamp(235px,34vh,360px); }
+.quick-commands { display: flex; gap: 6px; padding: 10px 13px; border-top: 1px solid var(--edge); background: var(--panel); flex-wrap: wrap; }
+.quick-commands button { border: 1px solid #3f4939; padding: 5px 9px; background: #242b20; color: var(--lime); }
+.launch .explainer { margin-top: 25px; }
+.launch .explainer a { text-underline-offset: 3px; }
+@media(max-width: 790px) {
+  .flight-hero { grid-template-columns: 1fr; gap: 18px; }
+  .flight-intro h1 { font-size: clamp(47px,7vw,69px); margin: 9px 0; }
+  .flight-intro h1 br { display: none; }
+  .flight-intro p { max-width: 66ch; }
+  .flight-intro .flight-hint, .feature-jump { display: none; }
+  .feature-go { font-size: 0; } .feature-go b { font-size: 18px; }
+}
+@media(max-width: 520px) {
+  .flight-hero { padding: 22px 0 15px; }
+  .flight-intro .eyebrow { font-size: 10px; }
+  .flight-intro h1 { font-size: clamp(41px,10vw,53px); }
+  .flight-intro p { font-size: 15px; }
+  .rust-feature { gap: 12px; padding: 12px; }
+  .rust-feature img { width: 66px; height: 74px; }
+  .rust-feature h2 { font-size: 20px; }
+  .rust-feature p { font-size: 13px; }
+  .feature-go { margin: 0 0 0 auto; }
+  .flight-controls { padding: 10px 11px; }
+  #flight-play { min-width: 97px; font-size: 12px; }
+  .work-heading { align-items: flex-start; flex-wrap: wrap; }
+}
+
+.flight-head div { display: flex; gap: 12px; align-items: center; }
+#flight-expand { border: 1px solid #4b5545; background: transparent; color: var(--ink); border-radius: 4px; padding: 3px 8px; font: 11px var(--mono); cursor: pointer; }
+.flight-deck:fullscreen { width: 100vw; height: 100vh; border: 0; border-radius: 0; display: flex; flex-direction: column; background: #0a0c0b; }
+.flight-deck:fullscreen .flight-screen { flex: 1; min-height: 0; aspect-ratio: auto; }
+.flight-deck:fullscreen .flight-screen :is(canvas,img,video) { object-fit: contain; }
+.flight-deck:fullscreen .flight-controls { padding-block: 14px; }

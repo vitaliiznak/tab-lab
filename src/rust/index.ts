@@ -7,7 +7,7 @@ import {
 import { mountWorkspace } from "./mount";
 import { createEditor } from "./editor";
 import { actionScript, config, environment, runner } from "./guest-scripts";
-import { readHash, shareHash } from "./share";
+import { readHash, shareHash, type SourceFile, type GpuFiles } from "./share";
 import toml from "../../image/template/Cargo.toml?raw";
 import lock from "../../image/template/Cargo.lock?raw";
 import hello from "./examples/hello.rs?raw";
@@ -62,7 +62,21 @@ export async function prepareRust({
   const stats = status.dataset;
   stats.state = "booting";
   stats.seq = "0";
-  let chosen: Example = "hello";
+  const requested = new URLSearchParams(location.search).get("example");
+  let chosen: Example =
+    requested && Object.hasOwn(examples, requested)
+      ? (requested as Example)
+      : "hello";
+  let activeFile: SourceFile = "src/main.rs";
+  let gpuFiles: GpuFiles = { "kernels.cu": kernels, "build.rs": build };
+  const fileTabs = [
+    ...document.querySelectorAll<HTMLButtonElement>("[data-rust-file]"),
+  ];
+  const cpuChoice =
+    document.querySelector<HTMLButtonElement>("#rust-cpu-choice")!;
+  const heading = document.getElementById("rust-heading")!;
+  const description = document.getElementById("rust-description")!;
+  const featureLink = document.getElementById("rust-feature-link")!;
   let pty: Pty | undefined;
   let machine: KernelHandle | undefined;
   let hardware = "";
@@ -78,6 +92,8 @@ export async function prepareRust({
         throw Error("Unknown example in shared link.");
       chosen = shared.example as Example;
       sharedCode = shared.code;
+      if (shared.files) gpuFiles = shared.files;
+      if (shared.file) activeFile = shared.file;
     }
   } catch (error) {
     status.textContent = "Shared link could not be read. " + errorText(error);
@@ -86,22 +102,28 @@ export async function prepareRust({
   const workspace = new MemoryFs({
     "Cargo.toml": toml,
     "Cargo.lock": lock,
+    ...(chosen === "fractal" ? gpuFiles : {}),
     ".lab": { env: environment, action: actionScript, runner, event: "" },
     ".cargo": { "config.toml": config },
     src: { "main.rs": sharedCode ?? examples[chosen].source },
   });
+  // The interactive shell can rename or remove files while their tab is open.
+  // An empty editor lets the visitor re-create such a file with the next edit.
+  function source(file: SourceFile) {
+    return workspace.exists(file) ? workspace.readText(file) : "";
+  }
   const drafts = new Map<Example, string>();
   let syncing = false;
-  const editor = createEditor(
+  const { view: editor, open: openEditor } = createEditor(
     document.querySelector("#rust-editor")!,
-    workspace.readText("/src/main.rs"),
+    activeFile,
+    source(activeFile),
     (code) => {
-      if (!syncing) workspace.writeFile("/src/main.rs", code);
+      if (!syncing) workspace.writeFile(activeFile, code);
     },
   );
   function syncEditor() {
-    if (!workspace.exists("/src/main.rs")) return;
-    const code = workspace.readText("/src/main.rs");
+    const code = source(activeFile);
     if (code === editor.state.doc.toString()) return;
     syncing = true;
     try {
@@ -112,16 +134,34 @@ export async function prepareRust({
       syncing = false;
     }
   }
-  function kernelFiles() {
-    if (chosen === "fractal") {
-      workspace.writeFile("/build.rs", build);
-      workspace.writeFile("/kernels.cu", kernels);
-    } else {
-      workspace.rm("/build.rs", { force: true });
-      workspace.rm("/kernels.cu", { force: true });
+  function openFile(file: SourceFile) {
+    activeFile = file;
+    openEditor(file, source(file));
+    for (const tab of fileTabs)
+      tab.setAttribute("aria-pressed", String(tab.dataset.rustFile === file));
+  }
+  function showExample() {
+    const gpu = chosen === "fractal";
+    heading.textContent = gpu ? "Rust + CUDA" : "Rust playground";
+    description.textContent = gpu
+      ? "Run Mandelbrot to compile Rust with Cargo, launch the CUDA kernel on your GPU through WebGPU, and draw the frames in the terminal."
+      : "Edit Rust here and run Cargo inside the tab’s isolated Linux machine.";
+    featureLink.hidden = gpu;
+    for (const tab of fileTabs) {
+      tab.hidden = !gpu && tab.dataset.rustFile !== "src/main.rs";
+      tab.setAttribute(
+        "aria-pressed",
+        String(tab.dataset.rustFile === activeFile),
+      );
     }
   }
-  kernelFiles();
+  for (const tab of fileTabs)
+    tab.addEventListener("click", () => {
+      if (tab.hidden || running?.action === "format") return;
+      openFile(tab.dataset.rustFile as SourceFile);
+      controls();
+    });
+  showExample();
   for (const [value, example] of Object.entries(examples))
     select.add(new Option(example.label, value));
   select.value = chosen;
@@ -135,42 +175,84 @@ export async function prepareRust({
   }
   function controls() {
     select.disabled = !!running;
+    cpuChoice.hidden = !pty || !requiresGpu();
+    for (const tab of fileTabs) tab.disabled = running?.action === "format";
     editor.dom.inert = running?.action === "format";
     for (const button of buttons) {
       const action = button.dataset.rustAction;
       const blockedByGpu =
-        requiresGpu() && (action === "run" || action === "release");
+        !!pty && requiresGpu() && (action === "run" || action === "release");
       if (action === "run" || action === "release")
         button.title = blockedByGpu
           ? "Enable WebGPU or select a CPU example."
-          : "";
+          : chosen === "fractal"
+            ? "Compile and run Mandelbrot on your GPU."
+            : "";
+      if (action === "format")
+        button.title =
+          activeFile === "kernels.cu"
+            ? "rustfmt formats Rust source files."
+            : !hasFormat
+              ? "Waiting for rustfmt."
+              : "Format " + activeFile;
       button.disabled =
         action !== "share" &&
         (!pty ||
           !!running ||
           blockedByGpu ||
-          (action === "format" && !hasFormat) ||
+          (action === "format" &&
+            (!hasFormat || activeFile === "kernels.cu")) ||
           (action === "clippy" && !hasClippy));
     }
   }
   controls();
-  select.addEventListener("change", () => {
+  function changeExample(next: Example) {
     if (running) {
       select.value = chosen;
       return;
     }
-    drafts.set(chosen, editor.state.doc.toString());
-    chosen = select.value as Example;
-    kernelFiles();
+    if (next === chosen) return;
+    drafts.set(chosen, source("src/main.rs"));
+    if (chosen === "fractal") {
+      gpuFiles = {
+        "kernels.cu": source("kernels.cu"),
+        "build.rs": source("build.rs"),
+      };
+      workspace.rm("kernels.cu", { force: true });
+      workspace.rm("build.rs", { force: true });
+    }
+    chosen = next;
+    select.value = next;
+    if (chosen === "fractal") {
+      workspace.writeFile("kernels.cu", gpuFiles["kernels.cu"]);
+      workspace.writeFile("build.rs", gpuFiles["build.rs"]);
+    }
     workspace.writeFile(
-      "/src/main.rs",
+      "src/main.rs",
       drafts.get(chosen) ?? examples[chosen].source,
     );
-    syncEditor();
-    if (location.hash.startsWith("#code="))
-      history.replaceState(null, "", location.pathname + location.search);
+    openFile("src/main.rs");
+    showExample();
+    const url = new URL(location.href);
+    if (chosen === "hello") url.searchParams.delete("example");
+    else url.searchParams.set("example", chosen);
+    if (url.hash.startsWith("#code=")) url.hash = "";
+    history.replaceState(null, "", url);
     controls();
     if (pty) status.textContent = readyStatus();
+  }
+  select.addEventListener("change", () =>
+    changeExample(select.value as Example),
+  );
+  cpuChoice.addEventListener("click", () => changeExample("hello"));
+  featureLink.addEventListener("click", (event) => {
+    if (
+      event instanceof MouseEvent &&
+      (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+    )
+      return;
+    event.preventDefault();
+    changeExample("fractal");
   });
 
   let updateTimer: ReturnType<typeof setTimeout>;
@@ -210,7 +292,7 @@ export async function prepareRust({
     controls();
   }
   workspace.onChange((change) => {
-    if (change.path === "/src/main.rs" || change.to === "/src/main.rs") {
+    if (change.path === "/" + activeFile || change.to === "/" + activeFile) {
       clearTimeout(updateTimer);
       updateTimer = setTimeout(syncEditor, 35);
     }
@@ -234,7 +316,19 @@ export async function prepareRust({
       const action = button.dataset.rustAction!;
       if (action === "share") {
         try {
-          const hash = await shareHash(chosen, editor.state.doc.toString());
+          const files =
+            chosen === "fractal"
+              ? {
+                  "kernels.cu": source("kernels.cu"),
+                  "build.rs": source("build.rs"),
+                }
+              : undefined;
+          const hash = await shareHash(
+            chosen,
+            source("src/main.rs"),
+            files,
+            activeFile,
+          );
           history.replaceState(
             null,
             "",
@@ -254,6 +348,7 @@ export async function prepareRust({
       }
       if (!pty || !machine || running || button.disabled) return;
       const ticket = crypto.randomUUID();
+      const actionFile = activeFile;
       running = {
         ticket,
         action: action as Action,
@@ -278,12 +373,12 @@ export async function prepareRust({
           release: "cargo run --release --locked",
           test: "cargo test --locked",
           clippy: "cargo clippy --locked",
-          format: "rustfmt --edition 2021 src/main.rs",
+          format: "rustfmt --edition 2021 " + actionFile,
         };
         await writeTerminal("\r\n$ " + commands[action as Action] + "\r\n");
         process = await machine.spawn(
           "sh",
-          ["/work/.lab/action", action, ticket],
+          ["/work/.lab/action", action, ticket, actionFile],
           {
             cwd: "/work",
             user: "root",

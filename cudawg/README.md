@@ -50,3 +50,5 @@ memory, warp intrinsics, streams/events, cuBLAS and friends. Host code must be C
 1 MALLOC size -> id | 2 FREE id | 3 H2D id off len bytes | 4 D2H id off len -> bytes |
 5 REGISTER namelen wgsllen nparams kinds name wgsl -> kid | 6 LAUNCH kid gx gy gz bx by bz n args |
 7 SYNC | 8 MEMSET id off len byte | 9 D2D sid soff did doff len
+
+The homepage runs `tunnel --screen START END [MODE]` in the Linux guest. Frames 0 through 120 follow the same camera path as the terminal demo. Mode 0 shows the lit surface and mode 1 colors pixels by their actual ray-march iteration count. The optional `cudawgPresent` display extension sends the device buffer handle over vsock. The host copies that buffer to the 640 × 360 WebGPU canvas and acknowledges completion. The shell and Node examples can continue to use ordinary device-to-host copies.
