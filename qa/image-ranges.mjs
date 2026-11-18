@@ -1,6 +1,6 @@
-// Exercise both static-host behaviours, including a worker restart and a damaged range.
+// Verify both static host behaviours with a fresh worker and after a worker restart.
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { runInNewContext } from "node:vm";
 import { gzipSync } from "node:zlib";
@@ -8,16 +8,15 @@ const hash = (b) => createHash("sha256").update(b).digest("hex");
 const parts = [Buffer.alloc(512, 47), Buffer.alloc(512, 209)];
 const frames = parts.map((b) => gzipSync(b)),
   packed = Buffer.concat(frames);
-const members = frames.map((f, n) => ({
-  offset: n ? frames[0].length : 0,
-  bytes: f.length,
-  sha256: hash(f),
-}));
 const entry = {
-  file: "chunks/" + hash(packed) + ".gz",
+  file: "chunks/" + hash(packed) + ".bin",
   sha256: hash(packed),
   bytes: packed.length,
-  members,
+  members: frames.map((frame, n) => ({
+    offset: n ? frames[0].length : 0,
+    bytes: frame.length,
+    sha256: hash(frame),
+  })),
 };
 const manifest = JSON.stringify({
   size: 2048,
@@ -31,10 +30,14 @@ const source = readFileSync(
   "utf8",
 );
 const base = "https://test.invalid/tab-lab/";
-for (const mode of ["range", "whole", "damaged"]) {
-  let listener,
-    downloads = 0;
+const alpine = new URL("../public/images/alpine.erofs", import.meta.url);
+
+async function exercise(mode, baseImage) {
+  const original = baseImage || packed;
+  const disk = baseImage || Buffer.concat([...parts, Buffer.alloc(1024)]);
   const cache = new Map();
+  const requests = [];
+  let listener;
   const start = () =>
     runInNewContext(source, {
       self: {
@@ -43,10 +46,9 @@ for (const mode of ["range", "whole", "damaged"]) {
       },
       caches: {
         open: async () => ({
-          match: (k) => cache.get(k.href)?.clone(),
-          put: (k, v) => {
-            cache.set(k.href, v.clone());
-            return Promise.resolve();
+          match: (key) => cache.get(key.href)?.clone(),
+          put: async (key, value) => {
+            cache.set(key.href, value.clone());
           },
         }),
       },
@@ -58,47 +60,91 @@ for (const mode of ["range", "whole", "damaged"]) {
       TextDecoder,
       DecompressionStream,
       BroadcastChannel,
-      fetch: async (u, { headers } = {}) => {
-        if (u.pathname.endsWith("manifest.json")) return new Response(manifest);
-        const range = headers.Range.match(/bytes=(\d+)-(\d+)/);
-        downloads++;
-        if (mode === "whole") return new Response(packed);
-        const data = Buffer.from(packed.subarray(+range[1], +range[2] + 1));
-        if (mode === "damaged") data[data.length - 1] ^= 1;
-        return new Response(data, { status: 206 });
+      fetch: async (url, options = {}) => {
+        if (url.pathname.endsWith("manifest.json"))
+          return new Response(manifest);
+        const range = options.headers?.Range;
+        requests.push(range ? "range" : "whole");
+        if (!range || mode === "ignore-range") {
+          const data = Buffer.from(original);
+          if (mode === "corrupt-whole") data[data.length - 1] ^= 1;
+          return new Response(data);
+        }
+        const [, from, to] = /^bytes=(\d+)-(\d+)$/.exec(range);
+        const data = Buffer.from(original.subarray(+from, +to + 1));
+        const headers = {
+          "Content-Range": "bytes " + from + "-" + to + "/" + original.length,
+        };
+        if (mode === "wrong-total")
+          headers["Content-Range"] =
+            "bytes " + from + "-" + to + "/" + (original.length + 1);
+        if (mode === "http-encoded" || mode === "corrupt-whole")
+          headers["Content-Encoding"] = "gzip";
+        if (mode === "bad-member") data[0] ^= 1;
+        const response = new Response(data, { status: 206, headers });
+        if (mode === "broken-body")
+          response.arrayBuffer = async () => {
+            throw Error("Simulated truncated HTTP body");
+          };
+        return response;
       },
     });
   async function read(from, to) {
     let pending;
+    const file = baseImage ? "base.disk" : "toolchain.disk?v=" + hash(manifest);
     listener({
-      request: new Request(base + "images/toolchain.disk?v=" + hash(manifest), {
+      request: new Request(base + "images/" + file, {
         headers: { Range: "bytes=" + from + "-" + to },
       }),
       stopImmediatePropagation() {},
       respondWith: (p) => (pending = p),
     });
-    return await pending;
+    return pending;
   }
+  const from = baseImage ? 262143 : 480,
+    to = baseImage ? 262168 : 1099;
   start();
-  const result = await read(480, 1099);
-  if (mode === "damaged") {
+  const result = await read(from, to);
+  if (mode === "corrupt-whole") {
     assert.equal(result.status, 503);
-    continue;
+    assert.deepEqual(requests, ["range", "whole"]);
+    assert.equal(cache.size, 0, "corrupt whole not cached");
+    return;
   }
-  assert.equal(result.status, 206);
-  const disk = Buffer.concat([...parts, Buffer.alloc(1024)]);
+  assert.equal(result.status, 206, mode);
   assert.deepEqual(
     Buffer.from(await result.arrayBuffer()),
-    disk.subarray(480, 1100),
+    disk.subarray(from, to + 1),
+    mode,
   );
-  assert.equal(downloads, mode === "range" ? 2 : 1);
+  const expected =
+    mode === "range"
+      ? ["range", "range"]
+      : mode === "ignore-range"
+        ? ["range"]
+        : ["range", "whole"];
+  assert.deepEqual(requests, expected, mode);
   start();
+  const warm = await read(21, 51);
+  assert.equal(warm.status, 206);
   assert.deepEqual(
-    Buffer.from(await (await read(21, 51)).arrayBuffer()),
+    Buffer.from(await warm.arrayBuffer()),
     disk.subarray(21, 52),
   );
-  assert.equal(downloads, mode === "range" ? 2 : 1);
+  assert.deepEqual(requests, expected, "worker restart reuses verified data");
+}
+for (const mode of [
+  "range",
+  "ignore-range",
+  "http-encoded",
+  "wrong-total",
+  "broken-body",
+  "bad-member",
+  "corrupt-whole",
+]) {
+  await exercise(mode);
+  if (existsSync(alpine)) await exercise(mode, readFileSync(alpine));
 }
 console.log(
-  "Image Range reads, whole-chunk fallback, warm cache, sparse extents and checksum failures passed.",
+  "Range integrity, HTTP encoding, decode failure, whole-asset recovery, corrupt-whole rejection and warm-cache reads passed.",
 );

@@ -277,6 +277,21 @@ def extra_tools(base, cpus):
         print(f'{label} passed: {data["elapsedMs"]} ms',flush=True)
 
 
+def live(base, cpus):
+    visit(urljoin(base, 'cuda/'))
+    click('vecadd')
+    wait('tabLab.output.includes("errors=0 c[12345]=30862.5")', 30)
+    print("Live CUDA verified 1,048,576 results.", flush=True)
+    check_console()
+    visit(urljoin(base, 'rust/') + '?cpus=' + str(cpus))
+    boot_bytes = val('Number(document.querySelector("#rust-stats").dataset.imageBytes)')
+    data = action('Run', 1200)
+    assert 'Squares: [1, 4, 9, 16, 25, 36]' in latest_run()
+    data['bootImageBytes'] = boot_bytes
+    mark_measured('live-hello', data)
+    print('Live Rust hello: ' + json.dumps(data), flush=True)
+
+
 def probe(base, cpus):
     visit(urljoin(base,'rust/') + '?cpus=' + str(cpus))
     # A new crate with no third-party dependencies checks the actual executable
@@ -295,7 +310,7 @@ def probe(base, cpus):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('url')
-    parser.add_argument('suite',choices=['cuda','rust','cuda-fallback','rust-fallback','probe','tools'])
+    parser.add_argument('suite',choices=['cuda','rust','cuda-fallback','rust-fallback','probe','tools','live'])
     parser.add_argument('--cpus',type=int,default=1)
     parser.add_argument('--examples',nargs='+')
     args=parser.parse_args()
@@ -312,6 +327,8 @@ def main():
             cli('open', 'about:blank', '--config='+f.name)
         if args.suite == 'probe':
             probe(args.url,args.cpus)
+        elif args.suite == 'live':
+            live(args.url,args.cpus)
         elif args.suite == 'tools':
             extra_tools(args.url,args.cpus)
         elif args.suite.startswith('cuda'):

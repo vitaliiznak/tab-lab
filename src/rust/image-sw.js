@@ -55,57 +55,110 @@
     return manifestRequests.get(revision);
   }
 
-  async function loadExtent(entry, member, expected, session) {
-    const id = member ? member.sha256 : entry.sha256;
+  const pendingWhole = new Map();
+  async function verify(bytes, description) {
+    if (
+      bytes.byteLength !== description.bytes ||
+      (await sha256(bytes)) !== description.sha256
+    ) {
+      throw Error("Image checksum mismatch: " + description.sha256);
+    }
+    return bytes;
+  }
+
+  async function readAsset(asset, file, part, session) {
+    const cache = await caches.open(cacheName).catch(() => undefined);
+    const key = (spec) => new URL("cache/" + spec.sha256, root);
+    const saved = async (spec) => {
+      const hit = await cache?.match(key(spec));
+      if (!hit) return;
+      try {
+        return await verify(await hit.arrayBuffer(), spec);
+      } catch {
+        /* Replace damaged local cache entries from the source. */
+      }
+    };
+    const store = async (response, spec) => {
+      const bytes = await response.arrayBuffer();
+      record(session, bytes.byteLength);
+      await verify(bytes, spec);
+      await cache?.put(key(spec), new Response(bytes)).catch(() => {});
+      return bytes;
+    };
+    const slice = (bytes) =>
+      part
+        ? verify(bytes.slice(part.offset, part.offset + part.bytes), part)
+        : bytes;
+    const cached = await saved(part || file);
+    if (cached) return cached;
+    if (part) {
+      const whole = await saved(file);
+      if (whole) return slice(whole);
+      try {
+        const first = part.offset;
+        const last = first + part.bytes - 1;
+        const response = await fetch(asset, {
+          headers: { Range: "bytes=" + first + "-" + last },
+        });
+        if (response.status === 200) return slice(await store(response, file));
+        const encoding = response.headers.get("Content-Encoding");
+        if (
+          response.status !== 206 ||
+          (encoding && encoding.toLowerCase() !== "identity") ||
+          response.headers.get("Content-Range") !==
+            "bytes " + first + "-" + last + "/" + file.bytes
+        ) {
+          void response.body?.cancel().catch(() => {});
+          throw Error("Range refers to a different representation");
+        }
+        return await store(response, part);
+      } catch {
+        // Some CDNs apply Range to an HTTP-gzipped representation. Fetch handles
+        // transport decoding on a complete response, whose file hash we verify.
+      }
+    }
+    if (!pendingWhole.has(file.sha256)) {
+      const download = async () => {
+        const response = await fetch(asset, { cache: "reload" });
+        if (response.status !== 200)
+          throw Error("Cannot load complete image asset " + asset.pathname);
+        return await store(response, file);
+      };
+      pendingWhole.set(
+        file.sha256,
+        download().finally(() => pendingWhole.delete(file.sha256)),
+      );
+    }
+    return slice(await pendingWhole.get(file.sha256));
+  }
+
+  function memo(id, read) {
     if (recent.has(id)) return recent.get(id);
-    if (loading.has(id)) return loading.get(id);
-    const read = async () => {
+    if (!loading.has(id)) {
+      loading.set(
+        id,
+        read()
+          .then((bytes) => {
+            if (recent.size >= 32) recent.delete(recent.keys().next().value);
+            recent.set(id, bytes);
+            return bytes;
+          })
+          .finally(() => loading.delete(id)),
+      );
+    }
+    return loading.get(id);
+  }
+
+  function loadExtent(entry, member, expected, session) {
+    const id = member ? member.sha256 : entry.sha256;
+    return memo(id, async () => {
       const asset = new URL(entry.file, root);
       if (
         asset.origin !== root.origin ||
         !asset.pathname.startsWith(root.pathname)
       )
         throw Error("Invalid chunk path");
-      const key = (hash) => new URL("cache/" + hash, root);
-      const cache = await caches.open(cacheName).catch(() => undefined);
-      const stored = await cache?.match(key(id));
-      let packed = stored && (await stored.arrayBuffer());
-      if (!packed && member) {
-        const whole = await cache?.match(key(entry.sha256));
-        if (whole)
-          packed = (await whole.arrayBuffer()).slice(
-            member.offset,
-            member.offset + member.bytes,
-          );
-      }
-      if (!packed) {
-        const headers = member
-          ? {
-              Range:
-                "bytes=" +
-                member.offset +
-                "-" +
-                (member.offset + member.bytes - 1),
-            }
-          : {};
-        const download = await fetch(asset, { headers });
-        if (!download.ok) throw Error("Missing image chunk " + entry.file);
-        packed = await download.arrayBuffer();
-        record(session, packed.byteLength);
-        const wholeResponse = !member || download.status === 200;
-        const received = wholeResponse ? entry : member;
-        if (
-          packed.byteLength !== received.bytes ||
-          (await sha256(packed)) !== received.sha256
-        ) {
-          throw Error("Checksum mismatch for " + entry.file);
-        }
-        await cache
-          ?.put(key(received.sha256), new Response(packed))
-          .catch(() => {});
-        if (member && wholeResponse)
-          packed = packed.slice(member.offset, member.offset + member.bytes);
-      }
+      const packed = await readAsset(asset, entry, member, session);
       const decoded = new Uint8Array(
         await new Response(
           new Blob([packed])
@@ -115,15 +168,8 @@
       );
       if (decoded.length !== expected)
         throw Error("Incorrect image extent size");
-      if (recent.size >= 32) recent.delete(recent.keys().next().value);
-      recent.set(id, decoded);
       return decoded;
-    };
-    loading.set(
-      id,
-      read().finally(() => loading.delete(id)),
-    );
-    return loading.get(id);
+    });
   }
 
   function bounds(header, size) {
@@ -200,64 +246,61 @@
     return partial(answer, start, end, manifest.size, revision);
   }
 
-  // Ask the static host for just the requested base-image range. A host that
-  // returns HTTP 200 on a Range request supplies the base once, then we slice it.
-  let alpineWhole;
+  // Raw 256 KiB ranges of the pinned unkernel Alpine image, including its short final range.
+  const alpine = {
+    bytes: 4046848,
+    sha256: "f05a6163bad2547790a92ba1accfa317881d0306694d719202aa39afc39669f6",
+  };
+  const alpineBlockSize = 262144;
+  const alpineHashes = [
+    "0d257add1cd5a8f38890cc5b486d03c0ca18ac4c1a9971fd04b29e376a85ff1d",
+    "da798fb3ed08139591cd28edd7afd25bda018dcf908dcaf02b77c9b659186d6f",
+    "b7f2c3dc44085258297489f31d02ad28167834a26ca207792efa31debd62cdc3",
+    "41eb5feb2a11cb20b47b3ffa421f4fb92494c197f42b29fda52a41178d7be9f2",
+    "471c9dd8c8959766dddf97bcc39ae580273a29f21fbf53243af2827a3d14d9f2",
+    "44532dd38082174dfde9b4fadbccec5660244cdae372b2763e9bcce57e814305",
+    "6da1286f816148284f9c0e58ebfd4a17703d7d58e9cfc9494c178df7b92c5136",
+    "920eaff47c8afc7bb7ad155bacc9cc03e1ac1de2ab80c7fce2114b9c821a8fe1",
+    "9940f5adf66de1a814a20c591a359e0726f18583470a66033e5b9ba1db3f6bd1",
+    "acb8adc7e8115e8f6b2cf6b6925e21af8441e9cb98e7fb40c15e52bed2b12ce6",
+    "e20e94482d03d5f401e08793e1c9ddc43754fcbf028878d34a98b72cf2426be3",
+    "cc128bc5b1bed8ebbd53a52d9b41c3583e525498044e32a1fbc9a6269fb50663",
+    "4bbbc99dda1084c97bab3d29c0be400c9023d171e2790144c9ef0f69db2fbf18",
+    "d303d583973edac2e20f2268a7e8dd355fee1e4117a924ae5a3f476edcd7dfbc",
+    "db4af4aa0b891af0a78ef97443e3393d1e06fa8ec0a9031ece1fd96b03fac4a6",
+    "932130f6978d8bfd0ef89445be0dbf4a536140ed7c2035f4c72f40d3f93a662a",
+  ];
   async function alpineRange(request, url) {
-    const range = request.headers.get("range");
-    if (!range) return new Response(null, { status: 416 });
-    const asset = new URL("alpine.erofs", root);
-    const version = "unkernel-040e142";
-    const cache = await caches.open(cacheName).catch(() => undefined);
-    const key = new URL(
-      "cache/" + version + "-" + encodeURIComponent(range),
-      root,
-    );
-    const fullKey = new URL("cache/" + version + ".erofs", root);
-    const cached = await cache?.match(key);
-    if (cached)
-      return new Response(cached.body, {
-        status: 206,
-        headers: cached.headers,
+    const range = bounds(request.headers.get("Range"), alpine.bytes);
+    if (!range)
+      return new Response(null, {
+        status: 416,
+        headers: { "Content-Range": "bytes */" + alpine.bytes },
       });
-    if (!alpineWhole) {
-      const whole = await cache?.match(fullKey);
-      if (whole) alpineWhole = new Uint8Array(await whole.arrayBuffer());
+    const [start, end] = range;
+    const asset = new URL("alpine.erofs", root);
+    const data = new Uint8Array(end - start + 1);
+    const first = Math.floor(start / alpineBlockSize);
+    const last = Math.floor(end / alpineBlockSize);
+    for (let n = first; n <= last; n++) {
+      const offset = n * alpineBlockSize;
+      const block = {
+        offset,
+        bytes: Math.min(alpineBlockSize, alpine.bytes - offset),
+        sha256: alpineHashes[n],
+      };
+      const bytes = await memo(
+        block.sha256,
+        async () =>
+          new Uint8Array(
+            await readAsset(asset, alpine, block, url.searchParams.get("id")),
+          ),
+      );
+      const begin = Math.max(start, offset);
+      const stop = Math.min(end + 1, offset + bytes.length);
+      data.set(bytes.subarray(begin - offset, stop - offset), begin - start);
     }
-    if (!alpineWhole) {
-      const response = await fetch(asset, { headers: { Range: range } });
-      if (!response.ok) throw Error("Missing Alpine image");
-      const bytes = new Uint8Array(await response.arrayBuffer());
-      record(url.searchParams.get("id"), bytes.length);
-      if (response.status === 206) {
-        const result = new Response(bytes, {
-          status: 206,
-          headers: {
-            "Content-Range": response.headers.get("content-range") || "",
-            "Content-Length": String(bytes.length),
-            "Accept-Ranges": "bytes",
-            ETag: '"' + version + '"',
-            "Cross-Origin-Resource-Policy": "same-origin",
-          },
-        });
-        await cache
-          ?.put(key, new Response(bytes, { headers: result.headers }))
-          .catch(() => {});
-        return result;
-      }
-      alpineWhole = bytes;
-      await cache?.put(fullKey, new Response(bytes)).catch(() => {});
-    }
-    const limits = bounds(range, alpineWhole.length);
-    if (!limits) return new Response(null, { status: 416 });
-    const [start, end] = limits;
-    return partial(
-      alpineWhole.subarray(start, end + 1),
-      start,
-      end,
-      alpineWhole.length,
-      version,
-    );
+    return partial(data, start, end, alpine.bytes, alpine.sha256);
   }
 
   self.addEventListener("fetch", (event) => {

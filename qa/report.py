@@ -23,7 +23,7 @@ def count(value):
 lines = [
     "# Browser measurements",
     "",
-    "Chrome, headless at 1280 × 800 on an Apple M2 Max. Times are wall-clock seconds on a local static server. The CUDA rows use precompiled guest binaries and include guest-side input preparation, device transfers, dispatch and verification. For the tunnel, run time ends at the first truecolor half block.",
+    "Headless Chrome 157 at 1280 × 800 on an Apple M2 Max. The browser reported an Apple metal-3 hardware adapter. Times are wall-clock seconds on a local static server with HTTP ranges and a GitHub Pages project path. Internet latency can change these times. The CUDA rows use precompiled guest binaries and include guest-side input preparation, device transfers, dispatch and verification. For the tunnel, run time ends at the first truecolor half block.",
     "",
     "| CUDA command | vCPUs | Guest MiB | Boot s | Run s |",
     "| --- | ---: | ---: | ---: | ---: |",
@@ -32,7 +32,7 @@ for name, row in cuda.items():
     lines.append(f"| {name} | {row['cpus']} | {row['memoryMiB']} | {seconds(row['bootMs'])} | {seconds(row['runMs'])} |")
 
 if rust:
-    lines.extend(["", "Rust measurements use the baked offline dependency cache. “First” is the first build after loading that example in the named session; “warm” repeats it with no source change. For each GPU mode and CPU count, hello is the first build after an empty browser cache. Boot is measured to an interactive shell. Build ends when Cargo invokes its runner and run ends on process exit.", "",
+    lines.extend(["", "Rust measurements use the baked offline dependency cache. Each suite started in a fresh browser profile. Hello ran first with an empty disk cache. The other examples then reused previously downloaded chunks. Each warm build reran the same code. Boot is measured to an interactive shell. Build ends when Cargo invokes its runner and run ends on process exit.", "",
        "| GPU | Example | vCPUs | Guest MiB | Boot s | First build s | Warm build s | First run s | Warm run s | First total s | Warm total s |",
        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"])
     for (mode, cpus, name), trials in rust.items():
@@ -40,7 +40,7 @@ if rust:
         row = trials["first"]; warm = trials.get("warm",{})
         times = [seconds(value) if value is not None else "—" for value in [row["bootMs"],row["compileMs"],warm.get("compileMs"),row["runMs"],warm.get("runMs"),row["elapsedMs"],warm.get("elapsedMs")]]
         lines.append("| " + " | ".join([mode,name,str(cpus),row["memoryMib"],*times]) + " |")
-    lines.extend(["", "Image payload means compressed static disk bytes received over HTTP for the guest, including the Alpine base. The counter excludes the web application and the WASM kernel. Measures through the end of the first hello build and run.", "",
+    lines.extend(["", "Image payload counts bytes received over HTTP for the offline data disk and Alpine base. The counter excludes the web application and the WASM kernel. Totals cover boot through the end of the first hello run.", "",
         "| GPU | vCPUs | Boot bytes | Additional hello bytes | Total image bytes fetched |",
         "| --- | ---: | ---: | ---: | ---: |"])
     for (mode, cpus, name), trials in rust.items():

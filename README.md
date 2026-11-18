@@ -1,10 +1,22 @@
 # Tab Lab
 
+![Mandelbrot frames rendered by Rust and CUDA inside the browser guest](docs/rust-cuda.gif)
+
+**[Open Tab Lab](https://vitaliiznak.github.io/tab-lab/)** · [CUDA terminal](https://vitaliiznak.github.io/tab-lab/cuda/) · [Rust playground](https://vitaliiznak.github.io/tab-lab/rust/)
+
 Run a real ARM64 Linux shell in a browser, launch CUDA C kernels through WebGPU, and edit and compile Rust with Cargo. The Mandelbrot example compiles Rust, translates its CUDA kernel to WGSL with Python, builds the C bridge with GCC, and draws the results in the terminal. The browser guest has no network.
 
 - **CUDA terminal** mounts five static ARM64 programs at `/opt/cuda`. Try `vecadd`, `matmul`, `reduce`, `tunnel` or `nvidia-smi`. The adapter name comes from WebGPU. The shell also boots on devices without WebGPU, where a six-second recording shows the tunnel.
 - **Rust playground** mounts the CodeMirror workspace at `/work`. The buttons and the interactive shell use the same Cargo workspace. The offline toolchain includes rustfmt, Clippy, GCC, Python and seven vendored crate dependencies. WebGPU is needed only for the Mandelbrot example.
 - **Runtime** uses [unkernel at 040e142](https://github.com/pithings/unkernel/tree/040e142cd016da066ac018de60fcdcec3201fd24). User programs run on its emulated CPU. Cargo compiles inside the guest. The host fetches static toolchain chunks and caches them by SHA-256. Guest disk writes and source edits last for the session. Share encodes the editor contents in the URL fragment.
+
+## Measurements
+
+On GitHub Pages, a cold four-CPU hello build took 54.05 s after an 8.06 s boot in Chrome 157 on an M2 Max. Over localhost on the same machine, a fresh four-CPU Rust guest booted in 1.55 s. Hello took 8.68 s to build and 0.84 s to build again. Boot plus the first hello run fetched 125,046,296 bytes of image payload, including 6,839,144 bytes during boot. Browser and network speeds affect these measurements.
+
+The complete static image assets occupy 299,515,203 bytes. The 4 GiB logical data disk uses 413 compressed files, each below 2 MB, plus a separate Alpine base image. The browser requests independently verified ranges and caches them across visits.
+
+[Per-example timings and CPU comparison](qa/measurements.md) · [CUDA screenshot](docs/cuda.png) · [Rust screenshot](docs/rust.png)
 
 ## Local development
 
@@ -14,6 +26,6 @@ The [image builder](image/README.md) documents the networked build stage, offlin
 
 ## Deployment
 
-GitHub Actions verifies the published toolchain archive, builds the static pages and deploys them from `main`. All visitor downloads are served under the same site. The custom domain is `lab.signumspace.net`; the existing Signumspace website has its own hosting configuration.
+GitHub Actions verifies the published toolchain archive, builds the static pages and deploys them from `main`. All visitor downloads are served under the same site. The artifact includes a `CNAME` file for `lab.signumspace.net`. With Actions publishing, GitHub also needs the hostname saved in this repository’s Pages settings when DNS is ready. Its DNS record is `lab CNAME vitaliiznak.github.io.`.
 
 [Licenses and corresponding source](public/licenses/index.html) · [Alpine package and crate inventory](https://vitaliiznak.github.io/tab-lab/images/packages.json).
