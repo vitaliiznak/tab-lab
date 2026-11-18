@@ -207,6 +207,7 @@ def reduced_motion(base):
 
 def run(base):
     base = base.rstrip('/') + '/'
+    qa.cli('set-reduced-motion', 'no-preference')
     flight(base)
     rust(base)
     terminal_cuda(base)
