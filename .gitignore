@@ -11,3 +11,4 @@ output/playwright/
 __pycache__/
 cudawg/build/
 qa/output/
+public/data-runtime/

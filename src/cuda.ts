@@ -34,6 +34,12 @@ void start(async () => {
           throw Error(copied.stderr || "Could not prepare CUDA programs");
         await pty.write("export PATH=/tmp/cuda:$PATH\n");
       }
+      function tunnelCommand(frames?: number) {
+        const { cols, rows } = terminalSize();
+        const width = Math.max(1, Math.min(cols - 1, 100));
+        const height = Math.max(6, Math.min(rows - 2, 32));
+        return `tunnel ${width} ${height}${frames ? " " + frames : ""}\n`;
+      }
       for (const button of document.querySelectorAll<HTMLButtonElement>(
         "[data-cmd]",
       )) {
@@ -41,20 +47,17 @@ void start(async () => {
         button.disabled =
           !lab.gpu && !["nvidia-smi", "interrupt"].includes(cmd);
         button.onclick = () => {
-          const { cols, rows } = terminalSize();
           command(
             cmd === "interrupt"
               ? "\x03"
               : cmd === "tunnel"
-                ? "tunnel " +
-                  Math.min(cols - 1, 100) +
-                  " " +
-                  Math.max(6, Math.min(rows - 2, 32)) +
-                  "\n"
+                ? tunnelCommand()
                 : cmd + "\n",
           );
         };
       }
+      if (lab.gpu && new URLSearchParams(location.search).get("demo") === "tunnel")
+        command(tunnelCommand(90));
     },
   };
 });

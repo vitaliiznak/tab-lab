@@ -22,3 +22,4 @@ await writeFile(
     coi,
 );
 await copyFile("src/rust/image-sw.js", "public/rust-image-sw.js");
+await import("./prepare-duckdb.mjs");

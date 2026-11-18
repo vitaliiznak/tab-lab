@@ -70,6 +70,10 @@ window.addEventListener(
   },
   { once: true },
 );
+// pagehide releases the kernel, including on a navigation the browser caches.
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) location.reload();
+});
 export function setActionPty(active?: Pty) {
   actionPty = active;
   if (active) {
@@ -95,16 +99,58 @@ export function command(cmd: string) {
 export function terminalSize() {
   return { cols: term.cols, rows: term.rows };
 }
-type LabSetup = {
+export type LabSetup = {
   options: CreateKernelOptions;
   connect?: (vm: KernelHandle, pty: Pty) => Promise<unknown> | unknown;
   adapter?: (name: string) => void;
   cwd: string;
   env?: Record<string, string>;
 };
+// The route lookup asks the local kernel and sends no packets.
+// Only the originating tab creates a marker, so the comparison is independent.
+async function inspectGuest(machine: KernelHandle, button: HTMLButtonElement) {
+  const proof = byId("guest-proof");
+  const compare = byId("guest-compare");
+  const secondGuest = new URLSearchParams(location.search).get("inspect") === "compare";
+  compare.hidden = true;
+  button.disabled = true;
+  proof.hidden = false;
+  proof.textContent = "Reading the running guest…";
+  const script = [
+    "printf '$ uname -srm\\n'",
+    "uname -srm",
+    "printf '\\n$ ls /sys/class/net\\n'",
+    "ls -1 /sys/class/net",
+    "printf '\\n$ ip route get 192.0.2.1  # local route lookup\\n'",
+    "ip route get 192.0.2.1 2>&1 || true",
+    "printf '\\n$ cat /proc/sys/kernel/random/boot_id\\n'",
+    "cat /proc/sys/kernel/random/boot_id",
+    secondGuest
+      ? "printf '\\n$ ls /tmp/tab-lab-marker\\n'; ls /tmp/tab-lab-marker 2>&1 || true"
+      : "printf '\\n$ touch /tmp/tab-lab-marker && ls /tmp/tab-lab-marker\\n'; touch /tmp/tab-lab-marker && ls /tmp/tab-lab-marker",
+  ].join("\n");
+  try {
+    const result = await machine.exec("/bin/sh", ["-ec", script]);
+    if (result.exitCode) throw Error(result.stderr || "Guest inspection failed.");
+    proof.textContent = result.stdout.trimEnd();
+    if (secondGuest) {
+      compare.querySelector("span")!.textContent =
+        "Compare the boot ID and the marker above with the first tab to see each guest’s own kernel and filesystem.";
+      compare.querySelector("a")!.hidden = true;
+    }
+    compare.hidden = false;
+  } catch (error) {
+    proof.textContent = error instanceof Error ? error.message : String(error);
+  } finally {
+    button.disabled = !lab.ready;
+  }
+}
 export async function start(prepare: () => Promise<LabSetup>) {
-  const started = performance.now(),
-    rust = document.body.dataset.lab === "rust";
+  const started = performance.now();
+  const kind = document.body.dataset.lab;
+  const rust = kind === "rust";
+  const usesDisk = rust || kind === "data";
+  const inspectButton = byId("inspect-guest") as HTMLButtonElement;
   writeTerminal("\x1b[38;2;167;178;163mBooting Linux…\x1b[0m\r\n");
   try {
     const support = await checkSupport();
@@ -112,12 +158,12 @@ export async function start(prepare: () => Promise<LabSetup>) {
     // Wait for the first Pages navigation to install the isolation worker and reload.
     if (
       !navigator.serviceWorker?.controller &&
-      (rust || !crossOriginIsolated) &&
+      (usesDisk || !crossOriginIsolated) &&
       isSecureContext &&
       "serviceWorker" in navigator
     ) {
       report("Preparing the local service worker…");
-      // Hosts that supply isolation headers still need the disk Range handler for Rust.
+      // Hosts that supply isolation headers still need the disk Range handler.
       await navigator.serviceWorker.register(assetUrl("coi-serviceworker.js"));
       if (!navigator.serviceWorker.controller) {
         await Promise.race([
@@ -132,7 +178,7 @@ export async function start(prepare: () => Promise<LabSetup>) {
         ]);
       }
     }
-    if (rust && !navigator.serviceWorker?.controller)
+    if (usesDisk && !navigator.serviceWorker?.controller)
       throw new Error(
         "The offline disk needs a service worker. Allow site storage in this browser and reload.",
       );
@@ -148,13 +194,13 @@ export async function start(prepare: () => Promise<LabSetup>) {
       kernel: new URL(kernelUrl, document.baseURI).href,
       worker: true,
       cpus,
-      memoryMiB: rust ? 2048 : 192,
-      memoryFallbackMiB: rust ? [1024] : [128],
+      memoryMiB: setup.options.memoryMiB ?? (rust ? 2048 : 192),
+      memoryFallbackMiB: setup.options.memoryFallbackMiB ?? (rust ? [1024] : [128]),
       onProgress: (p) => report("Linux · " + p.stage + "…"),
     });
     const machine = vm;
     let name = "WebGPU unavailable";
-    if (navigator.gpu) {
+    if (kind !== "data" && navigator.gpu) {
       try {
         const gpu = await attachCudawg(machine, navigator.gpu, {
           log: (msg?: string) => report("GPU · " + (msg || "Device event")),
@@ -171,7 +217,7 @@ export async function start(prepare: () => Promise<LabSetup>) {
       }
     }
     setup.adapter?.(name);
-    byId("gpu-missing").hidden = lab.gpu;
+    if (kind !== "data") byId("gpu-missing").hidden = lab.gpu;
     report("Opening the guest shell…");
     const env = {
       TERM: "xterm-256color",
@@ -179,7 +225,7 @@ export async function start(prepare: () => Promise<LabSetup>) {
       PS1: "\\[\\033[1;32m\\]guest\\[\\033[0m\\]:\\w $ ",
       ...setup.env,
     };
-    if (!rust) {
+    if (kind === "cuda") {
       writeTerminal(
         lab.gpu
           ? "\x1b[38;2;194;244;130mCUDA programs mounted at /opt/cuda.\x1b[0m\r\n"
@@ -221,6 +267,10 @@ export async function start(prepare: () => Promise<LabSetup>) {
     lab.ready = true;
     byId("signal").className = "ready";
     report("Shell ready");
+    inspectButton.disabled = false;
+    inspectButton.onclick = () => void inspectGuest(machine, inspectButton);
+    if (["1", "compare"].includes(new URLSearchParams(location.search).get("inspect") ?? ""))
+      void inspectGuest(machine, inspectButton);
     byId("machine").textContent =
       lab.cpus +
       " vCPU · " +
@@ -230,6 +280,7 @@ export async function start(prepare: () => Promise<LabSetup>) {
       " s boot";
     void machine.exited.then((exit) => {
       lab.ready = false;
+      inspectButton.disabled = true;
       byId("signal").className = "";
       report("Guest stopped · " + (exit.reason || exit.code));
     });

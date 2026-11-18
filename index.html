@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#111412" />
     <title>Tab Lab — Linux in a tab</title>
-    <meta
-      name="description"
-      content="Boot real Linux in your browser. Explore CUDA kernels on WebGPU or compile Rust with an offline Cargo toolchain."
-    />
+    <meta name="description" content="Boot an isolated Linux machine inside your browser tab. Explore Zürich bike data with DuckDB, render a CUDA tunnel on WebGPU, or compile Rust offline." />
     <link rel="icon" href="./mark.svg" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
@@ -18,70 +15,49 @@
       <section class="hero">
         <div class="intro">
           <div class="eyebrow"><i class="rails"></i> Browser computing lab</div>
-          <h1>Linux in<br />a <em>tab.</em></h1>
-          <p>
-            A real Linux kernel runs in your browser. Launch CUDA programs on
-            your GPU through WebGPU, or compile Rust with Cargo. Your code stays
-            on your machine.
-          </p>
+          <h1>Linux in<br /> a <em>tab.</em></h1>
+          <p>Boot a real, isolated Linux machine inside this browser tab. Your device runs the commands. The browser downloads the tools, and the guest runs without an internet connection.</p>
+          <a class="boot-link" href="./cuda/?inspect=1">Inspect a live Linux guest <span aria-hidden="true">→</span></a>
         </div>
         <figure class="specimen">
           <div class="scope-head">
-            <span><i class="live-square"></i> Kernel output</span
-            ><span>tunnel.cu</span>
+            <span><i class="live-square"></i> Recorded kernel output</span><span>tunnel.cu</span>
           </div>
           <div class="frame">
-            <img
-              src="./art/tunnel.jpg"
-              width="640"
-              height="360"
-              alt="A CUDA-rendered tunnel of purple, blue and lime curves"
-            />
+            <video controls playsinline preload="none" poster="./art/tunnel.jpg" src="./cuda/tunnel.mp4" width="640" height="360"
+              aria-label="Six-second recording of the CUDA gyroid tunnel"></video>
           </div>
-          <figcaption>
-            <span>Gyroid tunnel</span><span>CUDA / WebGPU</span>
-          </figcaption>
+          <figcaption><span>Gyroid tunnel</span><a href="./cuda/?demo=tunnel">Render on your GPU <span aria-hidden="true">↗</span></a></figcaption>
         </figure>
       </section>
-      <section class="labs" aria-label="Open a lab">
-        <a class="labcard" href="./cuda/"
-          ><div class="cardicon gpu-icon" aria-hidden="true">▦</div>
-          <div>
-            <h2>CUDA terminal</h2>
-            <p>Run GPU kernels from a Linux shell.</p>
-          </div>
-          <span class="open-tag">Open lab</span></a
-        >
-        <a class="labcard rustcard" href="./rust/"
-          ><div class="cardicon" aria-hidden="true">{ }</div>
-          <div>
-            <h2>Rust playground</h2>
-            <p>Edit, compile and run with real Cargo.</p>
-          </div>
-          <span class="open-tag">Open lab</span></a
-        >
+      <section class="labs" aria-label="Choose a demo">
+        <a class="labcard datacard" href="./data/">
+          <span class="cardicon data-icon" aria-hidden="true">▥</span>
+          <div><h2>DuckDB data lab</h2><p>Find eleven missing days in Zürich’s bicycle counts.</p></div>
+          <span class="card-arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="labcard" href="./cuda/">
+          <span class="cardicon gpu-icon" aria-hidden="true">▦</span>
+          <div><h2>CUDA terminal</h2><p>Render a moving tunnel from a Linux shell.</p></div>
+          <span class="card-arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="labcard rustcard" href="./rust/">
+          <span class="cardicon" aria-hidden="true">{ }</span>
+          <div><h2>Rust playground</h2><p>Edit a program and compile it with offline Cargo.</p></div>
+          <span class="card-arrow" aria-hidden="true">↗</span>
+        </a>
       </section>
       <section class="explainer">
-        <h2>How it works</h2>
-        <p>
-          Unkernel boots a Linux kernel compiled to WebAssembly and emulates
-          ARM64 programs in your tab. Cudawg translates a subset of CUDA C to
-          WGSL, then sends kernel launches to your WebGPU adapter. Cargo reads
-          an offline toolchain from image chunks that your browser downloads as
-          needed.
-        </p>
+        <h2>Inside the tab</h2>
+        <div>
+          <p>Each lab boots a WebAssembly Linux kernel with an emulated ARM64 CPU and its own filesystem. The guest sees the files the lab mounts for it. Closing or reloading the page discards its running processes and session files.</p>
+          <p>The browser can cache toolchain downloads. DuckDB reads data inside Linux, Cargo compiles there, and CUDA kernels reach your GPU through WebGPU.</p>
+        </div>
       </section>
       <section class="credits" id="credits">
         <h2>Credits &amp; source</h2>
-        <p>
-          Built with
-          <a
-            href="https://github.com/pithings/unkernel/tree/040e142cd016da066ac018de60fcdcec3201fd24"
-            >unkernel</a
-          >,
-          <a href="https://github.com/vitaliiznak/tab-lab/tree/main/cudawg"
-            >cudawg</a
-          >, Alpine Linux, xterm.js and CodeMirror.
+        <p>Built with <a href="https://github.com/pithings/unkernel/tree/040e142cd016da066ac018de60fcdcec3201fd24">unkernel</a>,
+          <a href="https://github.com/vitaliiznak/tab-lab/tree/main/cudawg">cudawg</a>, Alpine Linux, DuckDB, xterm.js and CodeMirror.
           <a href="./licenses/">Licenses and source</a> ·
           <a href="https://github.com/vitaliiznak/tab-lab">View repository</a>
         </p>

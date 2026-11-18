@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#111412" />
+    <meta name="lab-root" content="../" />
+    <title>DuckDB lab · Tab Lab</title>
+    <link rel="icon" href="../mark.svg" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/data/view.css" />
+    <script>
+      window.coi = { quiet: true, coepCredentialless: () => false };
+    </script>
+    <script src="../coi-serviceworker.js"></script>
+  </head>
+  <body data-lab="data">
+    <!--NAV-->
+    <main class="workspace datalab">
+      <div class="labintro">
+        <div class="eyebrow"><i class="rails"></i>Data processing</div>
+        <h1>DuckDB lab<span>.</span></h1>
+        <p>
+          Investigate a missing bike count in Zürich, then rearrange a million
+          readings inside Parquet. Every query runs in this tab’s isolated Linux
+          guest.
+        </p>
+      </div>
+      <div class="scene-switch" role="group" aria-label="Choose an experiment">
+        <button id="bike-tab" aria-pressed="true" aria-controls="bike-scene">
+          Zürich bike counters
+        </button>
+        <button
+          id="parquet-tab"
+          aria-pressed="false"
+          aria-controls="parquet-scene"
+        >
+          Parquet row groups
+        </button>
+      </div>
+      <section
+        id="bike-scene"
+        class="data-scene panel"
+        aria-labelledby="bike-title"
+      >
+        <header class="scene-heading">
+          <div>
+            <p class="data-kicker">Field observations · Zürich, 2011</p>
+            <h2 id="bike-title">Eleven missing days</h2>
+            <p>
+              Did the bikes disappear, or did the counter stop reporting? Select
+              a day to inspect the readings.
+            </p>
+          </div>
+          <label class="field-label"
+            >Bike counter<select id="bike-site" disabled>
+              <option value="10">Site 10</option>
+              <option value="6">Site 6</option>
+              <option value="5">Site 5</option>
+            </select></label
+          >
+        </header>
+        <div class="evidence-grid">
+          <figure class="evidence-plot bike-plot">
+            <figcaption>
+              <strong>Recorded bike passages</strong
+              ><span class="plot-unit">per day</span>
+            </figcaption>
+            <div class="bike-graph">
+              <div id="bike-ticks" class="bike-ticks" aria-hidden="true"></div>
+              <div
+                id="bike-bars"
+                class="bike-bars"
+                role="group"
+                aria-label="Daily totals. Select a day to inspect it."
+              >
+                <div class="plot-wait boot-wait">
+                  <strong id="chart-boot" role="status">Preparing Linux…</strong
+                  ><span
+                    >First visit downloads about 22 MB for DuckDB and its
+                    libraries, plus the Linux guest.</span
+                  >
+                </div>
+              </div>
+            </div>
+            <div class="dates" aria-hidden="true">
+              <span>26 Jul</span><span>1 Aug</span><span>11 Aug</span>
+            </div>
+            <div class="plot-key">
+              <span><i class="key-observed"></i>Recorded</span
+              ><span><i class="key-missing"></i>No reports</span>
+            </div>
+          </figure>
+          <aside
+            class="evidence-readout"
+            aria-label="Selected day"
+            aria-live="polite"
+          >
+            <span class="data-kicker">Selected day</span>
+            <h3 id="selected-day">28 Jul 2011</h3>
+            <dl class="facts">
+              <div>
+                <dt>Recorded passages</dt>
+                <dd id="day-passages">—</dd>
+              </div>
+              <div>
+                <dt>Quarter-hours reported</dt>
+                <dd id="day-intervals">—</dd>
+              </div>
+              <div>
+                <dt>Intervals reporting zero bikes</dt>
+                <dd id="day-zeros">—</dd>
+              </div>
+            </dl>
+            <p id="day-note">Each complete day contains 96 quarter-hours.</p>
+          </aside>
+        </div>
+        <div class="scene-foot">
+          <details>
+            <summary>View SQL</summary>
+            <pre id="bike-sql"></pre>
+          </details>
+          <a
+            href="https://data.stadt-zuerich.ch/dataset/83ca481f-275c-417b-9598-3902c481e400"
+            >Open Data Zürich · CC0 ↗</a
+          >
+        </div>
+        <p id="bike-status" class="data-status" role="status"></p>
+      </section>
+      <section
+        id="parquet-scene"
+        class="data-scene panel"
+        aria-labelledby="parquet-title"
+        hidden
+      >
+        <header class="scene-heading">
+          <div>
+            <p class="data-kicker">
+              File layout · 1,000,000 synthetic readings
+            </p>
+            <h2 id="parquet-title">How much can DuckDB skip?</h2>
+            <p>
+              Write the same readings in two orders. Query one station and see
+              which row groups the file statistics can rule out.
+            </p>
+          </div>
+          <div class="parquet-actions">
+            <label class="field-label"
+              >Station<select id="parquet-station" disabled>
+                <option>47</option>
+                <option>0</option>
+                <option>99</option>
+              </select></label
+            ><button id="build-parquet" class="build-btn" disabled>
+              Build &amp; compare
+            </button>
+          </div>
+        </header>
+        <div class="evidence-grid">
+          <figure class="evidence-plot parquet-plot">
+            <figcaption>
+              <strong>Candidate row groups</strong
+              ><span class="plot-unit">each square = one group</span>
+            </figcaption>
+            <div id="parquet-groups" aria-live="polite">
+              <p class="plot-wait">
+                Build the two Parquet files to inspect their metadata.
+              </p>
+            </div>
+            <div class="plot-key">
+              <span><i class="key-observed"></i>Could contain station</span
+              ><span><i class="key-skipped"></i>Ruled out</span>
+            </div>
+          </figure>
+          <aside
+            class="evidence-readout"
+            aria-label="Query result"
+            aria-live="polite"
+          >
+            <span class="data-kicker">Matching readings</span>
+            <h3 id="parquet-count">—</h3>
+            <dl class="facts">
+              <div>
+                <dt>Station</dt>
+                <dd id="parquet-site">47</dd>
+              </div>
+              <div>
+                <dt>Sum of watts</dt>
+                <dd id="parquet-watts">—</dd>
+              </div>
+            </dl>
+            <p id="parquet-note">
+              DuckDB checks the station minimum and maximum in each group.
+            </p>
+          </aside>
+        </div>
+        <div class="scene-foot">
+          <details>
+            <summary>View SQL</summary>
+            <pre id="parquet-sql"></pre>
+          </details>
+        </div>
+        <p id="parquet-status" class="data-status" role="status"></p>
+      </section>
+      <details class="panel sql-workbench" id="sql-workbench">
+        <summary>Run your own SQL</summary>
+        <div class="sql-editor">
+          <label for="custom-sql">Query the guest database</label>
+          <textarea
+            id="custom-sql"
+            rows="5"
+            autocapitalize="off"
+            spellcheck="false"
+            aria-describedby="sql-source"
+          >
+SELECT site_id, count(*) AS days_reporting
+FROM daily
+GROUP BY site_id
+ORDER BY days_reporting, site_id;</textarea>
+          <div class="sql-actions">
+            <button class="build-btn" id="run-sql" disabled>Run SQL</button
+            ><span id="sql-source"
+              >The <code>daily</code> view contains the Zürich counter
+              observations.</span
+            >
+          </div>
+          <p class="data-status" role="status" id="custom-status"></p>
+          <pre
+            id="custom-result"
+            aria-label="Query result as CSV"
+            tabindex="0"
+            hidden
+          ></pre>
+        </div>
+      </details>
+      <section class="panel tty data-terminal" aria-label="Guest shell">
+        <header class="panehead">
+          <strong><b class="prompticon">›_</b> Linux terminal</strong
+          ><span class="meta">/opt/lab</span>
+        </header>
+        <div id="terminal" aria-label="Interactive Linux terminal"></div>
+        <div class="readout" aria-live="polite">
+          <i id="signal"></i><span id="status">Preparing Linux…</span
+          ><span id="machine"></span>
+        </div>
+      </section>
+      <div class="guest-tools">
+        <span
+          >Open the same database with
+          <code>duckdb /tmp/data.duckdb</code></span
+        >
+      </div>
+      <!--GUEST-->
+    </main>
+    <!--FOOT-->
+    <script type="module" src="/src/data-page.ts"></script>
+  </body>
+</html>
