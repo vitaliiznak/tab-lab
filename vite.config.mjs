@@ -56,7 +56,7 @@ export default defineConfig({
               </div>
             </section>`;
           const footer =
-            '<footer><a href="https://signumspace.net">Signumspace</a><span>Linux in a tab</span><a href="' +
+            '<footer><a href="https://signumspace.net/manifest/">Signumspace</a><a href="https://signumspace.net/manifest/tab-lab/">Signumspace lab</a><a href="https://vitaliiznak.github.io/tab-lab/">GitHub Pages</a><a href="' +
             base +
             '#credits">Credits &amp; source</a></footer>';
           return html

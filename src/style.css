@@ -803,3 +803,5 @@ button:enabled:hover {
   .sitebar nav { gap: 9px; }
   .sitebar nav a { font-size: 12px; }
 }
+
+footer { flex-wrap: wrap; }

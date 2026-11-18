@@ -26,6 +26,8 @@ Use Node 24 and unzip. The first build downloads the pinned DuckDB CLI archive a
 
 The [image builder](image/README.md) documents the networked build stage, offline verification, chunk format and package notices. The browser guest never gets a network backend. The [CUDA project](cudawg/README.md) documents the supported language subset and the Node/Dawn baseline. To rerun it, install Zig as documented, then use `npm ci --prefix cudawg && make -C cudawg && npm run test:cuda`.
 
+[Signumspace profile](https://signumspace.net/manifest/) · [Signumspace lab deployment](https://signumspace.net/manifest/tab-lab/) · [GitHub Pages deployment](https://vitaliiznak.github.io/tab-lab/)
+
 ## Deployment
 
 GitHub Actions verifies the published toolchain archive, builds the static pages and deploys them from `main`. All visitor downloads are served under the same site. The artifact includes a `CNAME` file for `lab.signumspace.net`. With Actions publishing, GitHub also needs the hostname saved in this repository’s Pages settings when DNS is ready. Its DNS record is `lab CNAME vitaliiznak.github.io.`.
