@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#111412" />
+    <meta name="lab-root" content="../" />
+    <title>CUDA terminal · Tab Lab</title>
+    <link rel="icon" href="../mark.svg" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <script>
+      window.coi = { quiet: true, coepCredentialless: () => false };
+    </script>
+    <script src="../coi-serviceworker.js"></script>
+  </head>
+  <body data-lab="cuda">
+    <!--NAV-->
+    <main class="workspace">
+      <div class="labintro">
+        <div class="eyebrow"><i class="rails"></i>GPU computing</div>
+        <h1>CUDA terminal<span>.</span></h1>
+        <p>
+          Launch CUDA kernels on your WebGPU adapter from a real Linux shell.
+        </p>
+      </div>
+      <section id="gpu-missing" class="notice fallback" hidden>
+        <div>
+          <h2>WebGPU unavailable</h2>
+          <p>
+            The Linux shell is ready to use. This recording shows the tunnel
+            rendered by the CUDA example.
+          </p>
+        </div>
+        <video
+          controls
+          preload="metadata"
+          poster="../art/tunnel.jpg"
+          src="./tunnel.mp4"
+          aria-label="Recorded CUDA tunnel"
+        ></video>
+      </section>
+      <div class="console-layout">
+        <section class="panel tty">
+          <header class="panehead">
+            <strong><b class="prompticon">›_</b> Terminal</strong
+            ><span class="meta">/opt/cuda</span>
+          </header>
+          <div id="terminal" aria-label="Interactive Linux terminal"></div>
+          <div class="readout" aria-live="polite">
+            <i id="signal"></i><span id="status">Preparing Linux…</span
+            ><span id="machine"></span>
+          </div>
+        </section>
+        <aside class="panel commands">
+          <header class="panehead"><strong>Commands</strong></header>
+          <div class="command-list">
+            <button
+              disabled
+              class="cmd"
+              data-cmd="nvidia-smi"
+              aria-label="nvidia-smi"
+            >
+              <strong>nvidia-smi</strong><small>Inspect your GPU</small
+              ><span aria-hidden="true">↵</span></button
+            ><button disabled class="cmd" data-cmd="vecadd" aria-label="vecadd">
+              <strong>vecadd</strong><small>Add two vectors</small
+              ><span aria-hidden="true">↵</span></button
+            ><button disabled class="cmd" data-cmd="matmul" aria-label="matmul">
+              <strong>matmul</strong><small>Multiply matrices</small
+              ><span aria-hidden="true">↵</span></button
+            ><button disabled class="cmd" data-cmd="reduce" aria-label="reduce">
+              <strong>reduce</strong><small>Sum an array</small
+              ><span aria-hidden="true">↵</span></button
+            ><button disabled class="cmd" data-cmd="tunnel" aria-label="tunnel">
+              <strong>tunnel</strong><small>Render the gyroid tunnel</small
+              ><span aria-hidden="true">↵</span>
+            </button>
+          </div>
+          <button
+            disabled
+            class="interrupt"
+            data-cmd="interrupt"
+            aria-label="Ctrl+C"
+          >
+            Interrupt <kbd>Ctrl+C</kbd>
+          </button>
+        </aside>
+      </div>
+      <p class="runtime-note">
+        CUDA C kernels run through WGSL. Host code runs on the emulated ARM64
+        CPU.
+      </p>
+    </main>
+    <!--FOOT-->
+    <script type="module" src="/src/cuda.ts"></script>
+  </body>
+</html>

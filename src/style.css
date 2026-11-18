@@ -1,0 +1,754 @@
+@import "@fontsource-variable/space-grotesk";
+@import "@fontsource/ibm-plex-mono/latin-400.css";
+@import "@fontsource/ibm-plex-mono/latin-500.css";
+:root {
+  color-scheme: dark;
+  --bg: #101210;
+  --panel: #171a17;
+  --edge: #353a33;
+  --ink: #f0f2e9;
+  --muted: #a9afa4;
+  --lime: #c2f482;
+  --lilac: #c2acf8;
+  --mono: "IBM Plex Mono", monospace;
+  font:
+    16px/1.5 "Space Grotesk Variable",
+    sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+a {
+  color: inherit;
+}
+button,
+select {
+  font: inherit;
+}
+button,
+a,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+button:disabled {
+  opacity: 0.46;
+  cursor: wait;
+}
+button,
+a,
+select {
+  outline-offset: 4px;
+}
+:focus-visible {
+  outline: 2px solid var(--lime);
+}
+[hidden] {
+  display: none !important;
+}
+.top {
+  border-bottom: 1px solid var(--edge);
+}
+.sitebar,
+.home,
+.workspace,
+footer {
+  width: min(1344px, calc(100% - 8vw));
+  margin: auto;
+}
+.sitebar {
+  height: 71px;
+  display: flex;
+  align-items: center;
+  gap: 56px;
+}
+.brand {
+  display: inline-flex;
+  gap: 0;
+  align-items: center;
+  text-decoration: none;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -1.8px;
+}
+.slash {
+  color: #7c8378;
+  margin: 0 1px;
+}
+.mark {
+  width: 31px;
+  height: 31px;
+  border-radius: 6px;
+  background: var(--lime);
+  color: #181f12;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  font: 700 30px/1 var(--mono);
+  padding-bottom: 4px;
+}
+.mark i {
+  font: 600 17px/1 var(--mono);
+  align-self: flex-end;
+  padding-bottom: 4px;
+}
+.sitebar nav {
+  display: flex;
+  align-self: stretch;
+  gap: 28px;
+}
+.sitebar nav a,
+.source {
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 500;
+}
+.sitebar nav a {
+  position: relative;
+  display: grid;
+  align-items: center;
+}
+.sitebar nav a[aria-current] {
+  color: var(--ink);
+}
+.sitebar nav a[aria-current]:after {
+  content: "";
+  position: absolute;
+  background: var(--lime);
+  height: 2px;
+  bottom: -1px;
+  width: 100%;
+}
+.sitebar a:hover,
+.credits a:hover {
+  color: var(--lime);
+}
+.source {
+  margin-left: auto;
+  color: #e2e5db;
+}
+.source span {
+  color: var(--muted);
+}
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 6%;
+  align-items: center;
+  padding: clamp(40px, 5.4vw, 84px) 0 46px;
+}
+.eyebrow,
+.meta,
+.scope-head,
+.specimen figcaption,
+.open-tag,
+.readout,
+.runtime-note,
+.measure,
+#rust-stats {
+  font-family: var(--mono);
+}
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #bac2b4;
+  font-size: 12px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.rails {
+  display: inline-block;
+  width: 27px;
+  height: 11px;
+  background: repeating-linear-gradient(
+    115deg,
+    transparent 0 3px,
+    var(--lime) 3px 5px,
+    transparent 5px 7px
+  );
+}
+.intro h1 {
+  font-size: clamp(72px, 8.8vw, 138px);
+  line-height: 0.91;
+  margin: 23px 0;
+  letter-spacing: -0.075em;
+  font-weight: 600;
+}
+.intro em {
+  color: var(--lime);
+  font-style: normal;
+}
+.intro p,
+.labintro p,
+.explainer p,
+.credits p {
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.56;
+}
+.intro p {
+  max-width: 470px;
+  font-size: 18px;
+}
+.specimen {
+  border: 1px solid var(--edge);
+  border-radius: 9px;
+  overflow: hidden;
+  margin: 0;
+  background: #171a17;
+}
+.scope-head,
+.specimen figcaption,
+.panehead,
+.readout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.scope-head,
+.specimen figcaption {
+  padding: 12px 17px;
+  font-size: 12px;
+}
+.scope-head span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.live-square {
+  width: 7px;
+  height: 7px;
+  background: var(--lilac);
+}
+.frame {
+  position: relative;
+  border-block: 1px solid var(--edge);
+  overflow: hidden;
+}
+.frame img {
+  width: 100%;
+  display: block;
+  height: auto;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+}
+.scope-head span:last-child,
+.specimen figcaption span:last-child {
+  color: var(--muted);
+}
+.labs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.labcard {
+  padding: 25px 23px;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  background: linear-gradient(125deg, #20261c, #171b16 75%);
+  border: 1px solid #424b39;
+  border-radius: 8px;
+  text-decoration: none;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.labcard:hover {
+  border-color: var(--lime);
+}
+.rustcard {
+  background: linear-gradient(125deg, #25222a, #1b191d 75%);
+  border-color: #49404e;
+}
+.rustcard:hover {
+  border-color: var(--lilac);
+}
+.cardicon {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--lime);
+  background: #2c3525;
+  border: 1px solid #526143;
+  border-radius: 7px;
+  font: 500 25px/1 var(--mono);
+}
+.rustcard .cardicon {
+  color: var(--lilac);
+  background: #302b39;
+  border-color: #5a4f67;
+  letter-spacing: -5px;
+  padding-right: 5px;
+}
+.labcard h2,
+.explainer h2,
+.credits h2 {
+  margin: 0;
+  letter-spacing: -0.04em;
+  font-size: 25px;
+  line-height: 1.2;
+}
+.labcard p {
+  font-size: 15px;
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+.open-tag {
+  margin-left: auto;
+  white-space: nowrap;
+  color: var(--lime);
+  font-size: 12px;
+}
+.rustcard .open-tag {
+  color: var(--lilac);
+}
+.explainer,
+.credits {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  border-top: 1px solid var(--edge);
+  padding: 30px 0;
+  gap: 3vw;
+}
+.explainer {
+  margin-top: 44px;
+}
+.explainer p,
+.credits p {
+  max-width: 850px;
+  font-size: 16px;
+}
+.credits a {
+  color: var(--ink);
+  text-underline-offset: 3px;
+}
+footer {
+  border-top: 1px solid var(--edge);
+  padding: 22px 0;
+  display: flex;
+  gap: 16px;
+  color: #aab0a7;
+  font: 12px/1.5 var(--mono);
+}
+footer a {
+  text-decoration: none;
+  color: #d9ddd3;
+}
+footer a:last-child {
+  margin-left: auto;
+}
+.workspace {
+  padding: 34px 0 24px;
+}
+.labintro h1 {
+  font-size: clamp(40px, 4.6vw, 69px);
+  line-height: 1.06;
+  letter-spacing: -0.065em;
+  margin: 10px 0 7px;
+  font-weight: 550;
+}
+.labintro h1 span {
+  color: var(--lime);
+}
+.labintro p {
+  font-size: 17px;
+}
+.console-layout,
+.split {
+  display: grid;
+  gap: 18px;
+  margin-top: 25px;
+  align-items: stretch;
+}
+.console-layout {
+  grid-template-columns: minmax(0, 1fr) clamp(220px, 22vw, 315px);
+}
+.panel {
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.tty,
+.editor {
+  display: flex;
+  flex-direction: column;
+}
+.panehead {
+  height: 46px;
+  padding: 0 17px;
+  border-bottom: 1px solid var(--edge);
+  flex: none;
+}
+.panehead strong {
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 550;
+}
+.prompticon,
+.fileicon {
+  font: 500 15px var(--mono);
+  color: var(--lime);
+}
+.fileicon {
+  color: var(--lilac);
+}
+.meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+.tty {
+  background: #0c100d;
+}
+.tty .panehead,
+.editor .panehead {
+  background: #191d19;
+}
+#terminal {
+  height: clamp(355px, 49vh, 650px);
+  min-height: 220px;
+  padding: 13px 9px 10px 14px;
+  flex: auto;
+  overflow: hidden;
+}
+#terminal .xterm {
+  height: 100%;
+}
+.commands {
+  display: flex;
+  flex-direction: column;
+}
+.command-list {
+  padding: 2px 16px;
+}
+.cmd {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 11px 28px 10px 0;
+  text-align: left;
+  background: none;
+  color: var(--ink);
+  border: 0;
+  border-bottom: 1px solid #2c322c;
+  cursor: pointer;
+}
+.cmd strong {
+  color: var(--lime);
+  font: 500 14px var(--mono);
+}
+.cmd small {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+}
+.cmd span {
+  position: absolute;
+  right: 1px;
+  top: 17px;
+  color: #829379;
+}
+.cmd:hover,
+.interrupt:hover {
+  color: var(--lime);
+}
+.cmd:hover strong {
+  text-decoration: underline;
+}
+.interrupt {
+  background: #21251f;
+  color: #ced4c7;
+  border: 1px solid #3b4338;
+  border-radius: 5px;
+  display: flex;
+  width: calc(100% - 32px);
+  margin: 14px 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+kbd {
+  font: 12px var(--mono);
+  color: #b5bfae;
+}
+.readout {
+  border-top: 1px solid var(--edge);
+  padding: 9px 14px;
+  justify-content: flex-start;
+  gap: 9px;
+  min-height: 38px;
+  background: #191d19;
+  font-size: 12px;
+  color: #c2cabb;
+}
+.readout i {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: #e6ad71;
+}
+.readout i.ready {
+  background: var(--lime);
+}
+.readout i.error {
+  background: #ff9898;
+}
+#machine {
+  margin-left: auto;
+  color: var(--muted);
+  text-align: right;
+}
+.runtime-note,
+.measure,
+#rust-stats {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 13px 0 0;
+}
+.notice {
+  padding: 13px 17px;
+  border: 1px solid #625137;
+  border-radius: 6px;
+  background: #272218;
+  color: #e5ce9f;
+  margin: 16px 0 0;
+  font-size: 15px;
+}
+.fallback {
+  display: grid;
+  grid-template-columns: 1fr minmax(180px, 260px);
+  gap: 20px;
+  align-items: center;
+}
+.fallback h2 {
+  font-size: 18px;
+  margin: 0 0 4px;
+}
+.fallback p {
+  margin: 0;
+}
+.fallback video {
+  width: 100%;
+  border-radius: 4px;
+}
+.rust .rails {
+  filter: hue-rotate(160deg);
+}
+.rust h1 span {
+  color: var(--lilac);
+}
+.rust-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  margin: 21px 0 12px;
+}
+.rust-tools label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.rust-tools select,
+.actions button {
+  background: #222620;
+  color: var(--ink);
+  border: 1px solid #41483d;
+  border-radius: 5px;
+  padding: 7px 11px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.rust-tools select {
+  max-width: 100%;
+}
+.actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.actions button:hover {
+  border-color: var(--lilac);
+}
+.actions .run {
+  background: var(--lime);
+  color: #1a2612;
+  border-color: var(--lime);
+  font-weight: 650;
+}
+.run span {
+  font-size: 10px;
+}
+.split {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 0;
+}
+.editor {
+  background: #161917;
+}
+.rust #terminal,
+.rust #rust-editor {
+  height: clamp(325px, 44vh, 690px);
+  min-width: 0;
+}
+.rust #rust-editor {
+  font-size: 14px;
+  overflow: auto;
+}
+.rust .cm-editor {
+  height: 100%;
+}
+.rust .readout {
+  border: 1px solid var(--edge);
+  border-radius: 5px;
+  margin-top: 10px;
+}
+.mobile-note {
+  display: none;
+}
+button:enabled:hover {
+  filter: brightness(1.1);
+}
+@media (max-width: 850px) {
+  .open-tag {
+    display: none;
+  }
+  .labcard {
+    padding: 17px;
+    gap: 12px;
+  }
+  .cardicon {
+    height: 38px;
+    width: 38px;
+  }
+  .hero {
+    gap: 4%;
+  }
+  .rust-tools {
+    align-items: flex-start;
+  }
+  .console-layout {
+    grid-template-columns: minmax(0, 1fr) 210px;
+  }
+}
+@media (max-width: 680px) {
+  .sitebar,
+  .home,
+  .workspace,
+  footer {
+    width: 92%;
+  }
+  .sitebar {
+    height: 59px;
+    gap: 16px;
+  }
+  .brand {
+    font-size: 23px;
+  }
+  .mark {
+    width: 25px;
+    height: 25px;
+    font-size: 25px;
+    margin-right: 6px;
+  }
+  .mark i {
+    font-size: 14px;
+  }
+  .sitebar nav {
+    gap: 14px;
+  }
+  .sitebar nav a,
+  .source {
+    font-size: 13px;
+  }
+  .hero,
+  .labs,
+  .console-layout,
+  .split,
+  .explainer,
+  .credits,
+  .fallback {
+    grid-template-columns: 1fr;
+  }
+  .hero {
+    padding: 32px 0 20px;
+    gap: 24px;
+  }
+  .intro h1 {
+    font-size: 72px;
+  }
+  .intro h1 br {
+    display: none;
+  }
+  .intro p {
+    font-size: 16px;
+  }
+  .labs {
+    gap: 10px;
+  }
+  .open-tag {
+    display: block;
+  }
+  .labcard h2 {
+    font-size: 22px;
+  }
+  .explainer {
+    margin-top: 25px;
+  }
+  .explainer,
+  .credits {
+    gap: 12px;
+    padding: 20px 0;
+  }
+  .workspace {
+    padding-top: 25px;
+  }
+  .mobile-note {
+    display: block;
+    color: var(--lilac);
+    font-size: 13px;
+  }
+  .rust-tools select {
+    max-width: 65vw;
+  }
+  .cmd {
+    padding: 8px 24px 8px 0;
+  }
+  #terminal,
+  .rust #terminal {
+    height: 330px;
+  }
+  .rust #rust-editor {
+    height: 300px;
+  }
+  .readout {
+    flex-wrap: wrap;
+  }
+  footer {
+    gap: 9px;
+  }
+  .source span {
+    display: none;
+  }
+}

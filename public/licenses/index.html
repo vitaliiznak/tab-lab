@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Licenses and source · Tab Lab</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        background: #111512;
+        color: #ebeee7;
+        font: 17px/1.65 system-ui;
+      }
+      body {
+        max-width: 48rem;
+        padding: 4vw;
+        margin: auto;
+      }
+      a {
+        color: #c2f482;
+      }
+      h1 {
+        line-height: 1.1;
+      }
+      li + li {
+        margin-top: 0.65rem;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="../">Tab Lab</a>
+    <h1>Licenses and source</h1>
+    <ul>
+      <li>
+        The Linux kernel and unkernel kernel patches are GPL-2.0-only. This
+        distribution uses Linux 7.3.4 with the unkernel patches and its
+        BusyBox-based initramfs. The JavaScript SDK is MIT licensed.
+        <a
+          href="https://github.com/pithings/unkernel/tree/040e142cd016da066ac018de60fcdcec3201fd24"
+          >Exact upstream source and build instructions</a
+        >
+        ·
+        <a
+          href="https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.3.4.tar.xz"
+          >Linux source</a
+        >
+        · <a href="kernel-GPL-2.txt">GPL</a> ·
+        <a href="unkernel-MIT.txt">SDK license</a>.
+      </li>
+      <li>
+        The Rust toolchain image contains Alpine Linux packages and vendored
+        crates under their respective licenses.
+        <a href="../images/packages.json"
+          >Versions, licenses and source locations</a
+        >
+        ·
+        <a href="https://github.com/vitaliiznak/tab-lab/tree/main/image"
+          >Image build scripts and Cargo lockfile</a
+        >.
+      </li>
+      <li>
+        <a href="https://github.com/vitaliiznak/tab-lab/tree/main/cudawg"
+          >Cudawg source</a
+        >
+        includes the CUDA-to-WGSL translator, C runtime and WebGPU bridge used
+        by this lab.
+      </li>
+      <li>
+        <a href="xterm-MIT.txt">xterm.js</a>,
+        <a href="codemirror-MIT.txt">CodeMirror</a> and
+        <a href="coi-MIT.txt">coi-serviceworker</a> use the MIT license.
+      </li>
+      <li>
+        <a href="space-grotesk-OFL.txt">Space Grotesk</a> and
+        <a href="plex-OFL.txt">IBM Plex Mono</a> use the SIL Open Font License.
+      </li>
+    </ul>
+  </body>
+</html>

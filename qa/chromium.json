@@ -1,0 +1,15 @@
+{
+  "browser": {
+    "browserName": "chromium",
+    "isolated": true,
+    "launchOptions": {
+      "channel": "chrome",
+      "headless": true,
+      "args": ["--enable-unsafe-webgpu", "--enable-features=WebAssemblyJSPI", "--enable-unsafe-swiftshader"]
+    },
+    "contextOptions": { "viewport": { "width": 1280, "height": 800 } }
+  },
+  "timeouts": { "navigation": 60000, "action": 10000 },
+  "outputDir": "output/playwright",
+  "console": { "level": "error" }
+}

@@ -7,7 +7,7 @@ optional=""
 for package in rustfmt rust-clippy; do
   if apk search -x "$package" | grep -q "^$package-"; then optional="$optional $package"; fi
 done
-apk add rust cargo gcc musl-dev python3 $optional
+apk add rust cargo gcc musl-dev linux-headers python3 $optional
 sync
 rustc -V
 cargo -V

@@ -5,6 +5,7 @@ import { gzipSync } from "node:zlib";
 const [source, destination] = process.argv.slice(2);
 if (!source || !destination) throw new Error("Usage: node image/pack.mjs kwdata.img public/images");
 const chunkSize = 2 * 1024 * 1024;
+const memberSize = 256 * 1024;
 const size = fs.statSync(source).size;
 const chunks = [];
 const zero = Buffer.alloc(chunkSize);
@@ -25,7 +26,16 @@ try {
       chunks.push({file:null,bytes:0,sha256:emptyDigest});
       continue;
     }
-    const encoded = gzipSync(block, {level:6});
+    const members = [];
+    const frames = [];
+    let packedOffset = 0;
+    for (let pos = 0; pos < block.length; pos += memberSize) {
+      const frame = gzipSync(block.subarray(pos, pos + memberSize), { level: 6 });
+      members.push({ offset: packedOffset, bytes: frame.length, sha256: hash(frame) });
+      frames.push(frame);
+      packedOffset += frame.length;
+    }
+    const encoded = Buffer.concat(frames, packedOffset);
     const sha256 = hash(encoded);
     const file = "chunks/" + sha256 + ".gz";
     if (!unique.has(file)) {
@@ -35,10 +45,10 @@ try {
       uniqueBytes += encoded.length;
       unique.add(file);
     }
-    chunks.push({file,bytes:encoded.length,sha256});
+    chunks.push({file,bytes:encoded.length,sha256,members});
   }
 } finally { fs.closeSync(fd); }
-const manifest = {version:1, size, chunkSize, encoding:"gzip", diskSha256:diskHash.digest("hex"), compressedBytes:uniqueBytes, chunks};
+const manifest = {version:1, size, chunkSize, memberSize, encoding:"gzip", diskSha256:diskHash.digest("hex"), compressedBytes:uniqueBytes, chunks};
 fs.writeFileSync(path.join(destination, "manifest.json.tmp"), JSON.stringify(manifest));
 fs.renameSync(path.join(destination, "manifest.json.tmp"), path.join(destination, "manifest.json"));
 for (const old of fs.readdirSync(output)) {

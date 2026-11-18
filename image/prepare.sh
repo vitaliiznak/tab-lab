@@ -15,7 +15,6 @@ directory = "/opt/lab/vendor"
 offline = true
 [build]
 target-dir = "/opt/lab/target"
-jobs = 1
 CONFIG
 cat >/etc/profile.d/tab-lab.sh <<'PROFILE'
 export CARGO_HOME=/opt/lab/cargo-home
@@ -25,7 +24,7 @@ PROFILE
 . /etc/profile.d/tab-lab.sh
 chown -R 1000:1000 /opt/lab/target /opt/lab/cargo-home /opt/lab/template /work
 cd /opt/lab/template
-cargo build --frozen
+CARGO_BUILD_JOBS=1 cargo build --frozen
 chown -R 1000:1000 /opt/lab/target /opt/lab/cargo-home
 cargo run --frozen
 for tool in rustfmt cargo-clippy gcc ar python3; do command -v "$tool" || true; done

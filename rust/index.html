@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#111412" />
+    <meta name="lab-root" content="../" />
+    <title>Rust playground · Tab Lab</title>
+    <link rel="icon" href="../mark.svg" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <script>
+      window.coi = { quiet: true, coepCredentialless: () => false };
+    </script>
+    <script src="../coi-serviceworker.js"></script>
+  </head>
+  <body data-lab="rust">
+    <!--NAV-->
+    <main class="workspace rust">
+      <div class="labintro">
+        <div class="eyebrow"><i class="rails"></i>Offline toolchain</div>
+        <h1>Rust playground<span>.</span></h1>
+        <p>Edit Rust on the left. Run it with Cargo in the Linux shell.</p>
+      </div>
+      <p class="mobile-note">
+        Desktop recommended. You can still try the lab on this screen.
+      </p>
+      <div id="gpu-missing" class="notice" hidden>
+        WebGPU is unavailable. The CPU examples run with Cargo.
+      </div>
+      <div class="rust-tools">
+        <label
+          >Example
+          <select id="rust-example" aria-label="Example"></select
+        ></label>
+        <div class="actions">
+          <button data-rust-action="run" class="run" disabled>
+            <span aria-hidden="true">▶</span> Run</button
+          ><button data-rust-action="release" disabled>Release</button
+          ><button data-rust-action="test" disabled>Test</button
+          ><button data-rust-action="format" disabled>Format</button
+          ><button data-rust-action="clippy" disabled>Clippy</button
+          ><button data-rust-action="share">Share</button>
+        </div>
+      </div>
+      <div class="split">
+        <section class="panel editor">
+          <header class="panehead">
+            <strong><b class="fileicon">rs</b> src/main.rs</strong
+            ><span class="meta">/work</span>
+          </header>
+          <div id="rust-editor"></div>
+        </section>
+        <section class="panel tty">
+          <header class="panehead">
+            <strong><b class="prompticon">›_</b> Terminal</strong
+            ><span class="meta">/work</span>
+          </header>
+          <div id="terminal" aria-label="Interactive Linux terminal"></div>
+        </section>
+      </div>
+      <div class="readout" aria-live="polite">
+        <i id="signal"></i><span id="status">Preparing Linux…</span
+        ><span
+          id="disk-bytes"
+          aria-live="off"
+          title="Compressed disk payload fetched during this session"
+        ></span
+        ><span id="machine"></span>
+      </div>
+      <p class="measure" id="rust-first-build">
+        The first build loads rustc on the emulated CPU. Later builds reuse
+        compiled dependencies.
+      </p>
+      <p id="rust-stats" aria-live="polite">Waiting for Cargo.</p>
+    </main>
+    <!--FOOT-->
+    <script type="module" src="/src/rust-page.ts"></script>
+  </body>
+</html>

@@ -25,6 +25,19 @@ for (const [i, entry] of m.chunks.entries()) {
   if (packed.length !== entry.bytes || createHash("sha256").update(packed).digest("hex") !== entry.sha256) {
     throw new Error("Chunk checksum mismatch at " + i);
   }
+  if (entry.members.length !== Math.ceil(length / m.memberSize)) throw new Error("Invalid member count at " + i);
+  let nextOffset = 0;
+  for (const [j, member] of entry.members.entries()) {
+    const frame = packed.subarray(member.offset, member.offset + member.bytes);
+    const expectedLength = Math.min(m.memberSize, length - j * m.memberSize);
+    if (member.offset !== nextOffset || frame.length !== member.bytes ||
+        createHash("sha256").update(frame).digest("hex") !== member.sha256 ||
+        gunzipSync(frame, { maxOutputLength: expectedLength }).length !== expectedLength) {
+      throw new Error("Invalid gzip member at " + i + "/" + j);
+    }
+    nextOffset += member.bytes;
+  }
+  if (nextOffset !== packed.length) throw new Error("Incomplete member index at " + i);
   const raw = gunzipSync(packed, { maxOutputLength: length });
   if (raw.length !== length) throw new Error("Chunk length mismatch at " + i);
   diskDigest.update(raw);
