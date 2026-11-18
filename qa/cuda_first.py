@@ -56,8 +56,10 @@ def rust(base, via_link=True):
     note = '// QA shared CUDA source'
     edit = qa.ref('textbox', 'CUDA kernel source code')
     qa.cli('fill', edit, note + '\n' + original)
-    qa.click('Share')
     qa.wait('location.hash.startsWith("#code=")')
+    assert qa.val('new URL(location.href).searchParams.get("file")') == 'kernels.cu'
+    assert qa.val('document.querySelector("#inspect-guest").getBoundingClientRect().top > document.querySelector("#terminal").getBoundingClientRect().bottom')
+    qa.click('Share')
     link = urlsplit(qa.val('location.href'))
     qa.cli('goto', 'about:blank')
     qa.cli('goto', urlunsplit(link._replace(query='example=hello')))

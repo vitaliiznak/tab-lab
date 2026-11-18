@@ -23,7 +23,6 @@
         <p><span id="rust-description">Edit Rust here and run Cargo inside the tab’s isolated Linux machine.</span>
           <a id="rust-feature-link" href="?example=fractal">Try Rust + CUDA</a></p>
       </div>
-      <!--GUEST-->
       <p class="mobile-note">
         Desktop recommended. You can still try the lab on this screen.
       </p>
@@ -43,9 +42,10 @@
           ><button data-rust-action="test" disabled>Test</button
           ><button data-rust-action="format" disabled>Format</button
           ><button data-rust-action="clippy" disabled>Clippy</button
-          ><button data-rust-action="share">Share</button>
+          ><button data-rust-action="share" title="Copy a link to this example and its edited files">Share</button>
         </div>
       </div>
+      <p id="rust-link-note" class="measure">Copy the address to share the selected example and its edited files.</p>
       <div class="split">
         <section class="panel editor">
           <header class="panehead">
@@ -79,6 +79,7 @@
         First hello build on GitHub Pages took 54 s in Chrome on an M2 Max with four guest CPUs and an empty image cache. Rustc runs on the emulated CPU. Later builds reuse compiled code and downloaded files.
       </p>
       <p id="rust-stats" aria-live="polite">Waiting for Cargo.</p>
+      <!--GUEST-->
     </main>
     <!--FOOT-->
     <script type="module" src="/src/rust-page.ts"></script>

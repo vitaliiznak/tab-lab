@@ -67,7 +67,10 @@ export async function prepareRust({
     requested && Object.hasOwn(examples, requested)
       ? (requested as Example)
       : "hello";
-  let activeFile: SourceFile = "src/main.rs";
+  const requestedFile = new URLSearchParams(location.search).get("file");
+  let activeFile: SourceFile =
+    chosen === "fractal" && (requestedFile === "kernels.cu" || requestedFile === "build.rs")
+      ? requestedFile : "src/main.rs";
   let gpuFiles: GpuFiles = { "kernels.cu": kernels, "build.rs": build };
   const fileTabs = [
     ...document.querySelectorAll<HTMLButtonElement>("[data-rust-file]"),
@@ -93,7 +96,7 @@ export async function prepareRust({
       chosen = shared.example as Example;
       sharedCode = shared.code;
       if (shared.files) gpuFiles = shared.files;
-      if (shared.file) activeFile = shared.file;
+      activeFile = shared.file ?? "src/main.rs";
     }
   } catch (error) {
     status.textContent = "Shared link could not be read. " + errorText(error);
@@ -111,6 +114,46 @@ export async function prepareRust({
   // An empty editor lets the visitor re-create such a file with the next edit.
   function source(file: SourceFile) {
     return workspace.exists(file) ? workspace.readText(file) : "";
+  }
+  const compareLink = document.querySelector<HTMLAnchorElement>("#guest-compare a")!;
+  const linkNote = document.getElementById("rust-link-note")!;
+  const linkHint = linkNote.textContent;
+  let linkRevision = 0;
+  let linkTimer: ReturnType<typeof setTimeout>;
+  async function updateLink() {
+    clearTimeout(linkTimer);
+    const revision = ++linkRevision;
+    const url = new URL(location.href);
+    url.searchParams.set("example", chosen);
+    if (activeFile === "src/main.rs") url.searchParams.delete("file");
+    else url.searchParams.set("file", activeFile);
+    const code = source("src/main.rs");
+    const files = chosen === "fractal"
+      ? { "kernels.cu": source("kernels.cu"), "build.rs": source("build.rs") }
+      : undefined;
+    const edited = code !== examples[chosen].source ||
+      (files && (files["kernels.cu"] !== kernels || files["build.rs"] !== build));
+    let failure: unknown;
+    try {
+      url.hash = edited ? await shareHash(chosen, code, files, activeFile) : "";
+    } catch (error) {
+      failure = error;
+      url.hash = "";
+    }
+    if (revision !== linkRevision) return false;
+    linkNote.textContent = failure ? "Edits could not be included in the URL. " + errorText(failure) : linkHint;
+    if (url.href !== location.href) history.replaceState(history.state, "", url);
+    url.searchParams.set("inspect", "compare");
+    compareLink.href = url.href;
+    if (failure) throw failure;
+    return true;
+  }
+  function queueLink() {
+    ++linkRevision;
+    clearTimeout(linkTimer);
+    linkTimer = setTimeout(() => {
+      void updateLink().catch(error => { status.textContent = errorText(error); });
+    }, 180);
   }
   const drafts = new Map<Example, string>();
   let syncing = false;
@@ -159,12 +202,14 @@ export async function prepareRust({
     tab.addEventListener("click", () => {
       if (tab.hidden || running?.action === "format") return;
       openFile(tab.dataset.rustFile as SourceFile);
+      queueLink();
       controls();
     });
   showExample();
   for (const [value, example] of Object.entries(examples))
     select.add(new Option(example.label, value));
   select.value = chosen;
+  queueLink();
   function requiresGpu() {
     return chosen === "fractal" && !hasGpu();
   }
@@ -233,11 +278,7 @@ export async function prepareRust({
     );
     openFile("src/main.rs");
     showExample();
-    const url = new URL(location.href);
-    if (chosen === "hello") url.searchParams.delete("example");
-    else url.searchParams.set("example", chosen);
-    if (url.hash.startsWith("#code=")) url.hash = "";
-    history.replaceState(null, "", url);
+    queueLink();
     controls();
     if (pty) status.textContent = readyStatus();
   }
@@ -291,7 +332,10 @@ export async function prepareRust({
     running = undefined;
     controls();
   }
+  const sharedPaths = new Set(["/src/main.rs", "/kernels.cu", "/build.rs"]);
   workspace.onChange((change) => {
+    if (sharedPaths.has(change.path) || (change.to && sharedPaths.has(change.to)))
+      queueLink();
     if (change.path === "/" + activeFile || change.to === "/" + activeFile) {
       clearTimeout(updateTimer);
       updateTimer = setTimeout(syncEditor, 35);
@@ -316,24 +360,7 @@ export async function prepareRust({
       const action = button.dataset.rustAction!;
       if (action === "share") {
         try {
-          const files =
-            chosen === "fractal"
-              ? {
-                  "kernels.cu": source("kernels.cu"),
-                  "build.rs": source("build.rs"),
-                }
-              : undefined;
-          const hash = await shareHash(
-            chosen,
-            source("src/main.rs"),
-            files,
-            activeFile,
-          );
-          history.replaceState(
-            null,
-            "",
-            location.pathname + location.search + hash,
-          );
+          if (!(await updateLink())) return;
           try {
             await navigator.clipboard.writeText(location.href);
             status.textContent = "Link copied.";
