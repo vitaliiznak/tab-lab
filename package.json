@@ -1,0 +1,32 @@
+{
+  "name": "tab-lab",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "node scripts/prepare.mjs && vite --host 127.0.0.1",
+    "build": "node scripts/prepare.mjs && tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test:cuda": "node cudawg/test/cuda-in-unkernel.mjs"
+  },
+  "description": "A real Linux kernel, CUDA over WebGPU and an offline Rust toolchain in the browser.",
+  "dependencies": {
+    "@codemirror/lang-rust": "6.0.2",
+    "@codemirror/language": "6.13.1",
+    "@codemirror/state": "6.7.6",
+    "@codemirror/view": "6.43.15",
+    "@fontsource-variable/space-grotesk": "5.3.0",
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "@lezer/highlight": "1.2.5",
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
+    "codemirror": "6.0.2",
+    "coi-serviceworker": "0.1.7",
+    "unkernel": "0.2.0-261119-040e142"
+  },
+  "devDependencies": {
+    "@webgpu/types": "0.1.74",
+    "typescript": "5.9.3",
+    "vite": "7.3.8"
+  },
+  "private": true,
+  "type": "module"
+}

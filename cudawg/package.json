@@ -1,0 +1,17 @@
+{
+  "name": "tab-lab-cudawg",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "license": "ISC",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "test": "node --experimental-wasm-jspi test/cuda-in-unkernel.mjs"
+  },
+  "dependencies": {
+    "unkernel": "0.2.0-261119-040e142",
+    "webgpu": "0.6.2"
+  }
+}

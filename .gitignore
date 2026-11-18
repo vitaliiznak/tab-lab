@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.playwright-cli/
+.DS_Store
+*.log
+public/coi-serviceworker.js
+public/rust-image-sw.js
+public/kernel/
+public/images/
+output/playwright/
+__pycache__/
+cudawg/build/
+qa/output/
