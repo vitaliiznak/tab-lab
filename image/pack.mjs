@@ -37,7 +37,7 @@ try {
     }
     const encoded = Buffer.concat(frames, packedOffset);
     const sha256 = hash(encoded);
-    const file = "chunks/" + sha256 + ".gz";
+    const file = "chunks/" + sha256 + ".bin";
     if (!unique.has(file)) {
       const target = path.join(destination, file);
       fs.writeFileSync(target + ".tmp", encoded);
@@ -52,6 +52,6 @@ const manifest = {version:1, size, chunkSize, memberSize, encoding:"gzip", diskS
 fs.writeFileSync(path.join(destination, "manifest.json.tmp"), JSON.stringify(manifest));
 fs.renameSync(path.join(destination, "manifest.json.tmp"), path.join(destination, "manifest.json"));
 for (const old of fs.readdirSync(output)) {
-  if (/^[a-f0-9]{64}\.gz$/.test(old) && !unique.has("chunks/"+old)) fs.unlinkSync(path.join(output,old));
+  if (/^[a-f0-9]{64}\.(?:gz|bin)$/.test(old) && !unique.has("chunks/"+old)) fs.unlinkSync(path.join(output,old));
 }
 console.log(JSON.stringify({size, compressedBytes:uniqueBytes, files:unique.size, sha256:manifest.diskSha256}));

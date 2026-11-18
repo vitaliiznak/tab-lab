@@ -84,11 +84,11 @@ export function writeTerminal(text: string | Uint8Array) {
   return new Promise<void>((resolve) => term.write(text, resolve));
 }
 term.onData((data) => {
-  void (actionPty ?? pty)?.write(data);
+  void (actionPty ?? pty)?.write(data).catch(() => {});
 });
 export function command(cmd: string) {
   if (pty) {
-    void pty.write(cmd);
+    void pty.write(cmd).catch(() => {});
     term.focus();
   }
 }
@@ -194,6 +194,14 @@ export async function start(prepare: () => Promise<LabSetup>) {
       rows: term.rows,
       timeout: 120000,
     });
+    const manualShell = pty;
+    void manualShell.ended.then(() => {
+      if (pty !== manualShell) return;
+      pty = undefined;
+      byId("signal").className = "";
+      report("Shell closed · reload to reopen");
+      for (const button of document.querySelectorAll<HTMLButtonElement>("[data-cmd]")) button.disabled = true;
+    }).catch(() => {});
     void pty.output
       .pipeTo(
         new WritableStream<Uint8Array>({

@@ -52,4 +52,4 @@ if rust:
         meta = json.loads(manifest.read_text())
         size = (manifest.parent/'alpine.erofs').stat().st_size
         lines.extend(["", f'The data disk has {count(meta["size"])} logical bytes. Its stored chunks total {count(meta["compressedBytes"])} bytes, with another {count(size)} bytes in the Alpine base.'])
-(out/"timings.md").write_text("\n".join(lines)+"\n")
+(root/"qa/measurements.md").write_text("\n".join(lines)+"\n")

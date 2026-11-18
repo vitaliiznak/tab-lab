@@ -18,7 +18,7 @@ for (const [i, entry] of m.chunks.entries()) {
     diskDigest.update(zero.subarray(0, length));
     continue;
   }
-  if (!/^[a-f0-9]{64}$/.test(entry.sha256) || entry.file !== "chunks/" + entry.sha256 + ".gz") {
+  if (!/^[a-f0-9]{64}$/.test(entry.sha256) || ![".gz", ".bin"].some(extension => entry.file === "chunks/" + entry.sha256 + extension)) {
     throw new Error("Invalid chunk name at " + i);
   }
   const packed = fs.readFileSync(path.join(directory, entry.file));

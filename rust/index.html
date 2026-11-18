@@ -68,8 +68,7 @@
         ><span id="machine"></span>
       </div>
       <p class="measure" id="rust-first-build">
-        The first build loads rustc on the emulated CPU. Later builds reuse
-        compiled dependencies.
+        First hello build measured 8.7 s in Chrome on an M2 Max with four guest CPUs and a cold image cache over localhost. Rustc runs on an emulated CPU. Later builds are incremental, and remote download times vary.
       </p>
       <p id="rust-stats" aria-live="polite">Waiting for Cargo.</p>
     </main>

@@ -8,6 +8,7 @@ detection with Chromium GPU acceleration and software fallback disabled.
 from pathlib import Path
 from urllib.parse import urljoin
 import argparse
+import base64
 import json
 import os
 import re
@@ -149,28 +150,32 @@ def cuda(base, unavailable=False):
 
 
 def latest_run():
-    text = val('tabLab.output')
-    marker = '$ cargo run --locked\r\n'
-    # The toolbar reports the actual Cargo invocation before each build.
-    return text.rsplit(marker, 1)[-1]
+    return val(r"""() => tabLab.output.split('$ cargo run --locked\r\n').pop().slice(-12000)""")
 
 
 def save_fractal():
-    # Extract both RGB triplets from actual, complete Rust terminal frames.
-    text = latest_run()
-    frames = []
-    pattern = r'\x1b\[38;2;(\d+);(\d+);(\d+)m\x1b\[48;2;(\d+);(\d+);(\d+)m▀'
-    for part in text.split('\x1b[16A'):
-        pairs = re.findall(pattern, part)
-        if len(pairs) < 44 * 16:
-            continue
-        pixels = bytearray(44 * 32 * 3)
-        for index, colors in enumerate(pairs[-44 * 16:]):
-            x, y = index % 44, (index // 44) * 2
-            for row in range(2):
-                offset = ((y + row) * 44 + x) * 3
-                pixels[offset:offset + 3] = bytes(map(int, colors[3 * row:3 * row + 3]))
-        frames.append(pixels)
+    # Decode the two colors of each U+2580 in the received terminal stream.
+    # Returning one compact RGB frame per CLI read avoids truncating ANSI logs.
+    count = val(r"""() => {
+      const frames = [];
+      const stream = tabLab.output.split('$ cargo run --locked\r\n').pop();
+      const colors = /\x1b\[38;2;(\d+);(\d+);(\d+)m\x1b\[48;2;(\d+);(\d+);(\d+)m▀/g;
+      for (const part of stream.split('\x1b[16A')) {
+        const cells = Array.from(part.matchAll(colors)).slice(-44 * 16);
+        if(cells.length !== 44 * 16) continue;
+        const pixels = new Uint8Array(44 * 32 * 3);
+        cells.forEach((cell, index) => {
+          const x = index % 44, y = Math.floor(index / 44) * 2;
+          for(let row=0; row < 2; row++) {
+            pixels.set(cell.slice(1 + row * 3, 4 + row * 3).map(Number), ((y + row)*44 + x)*3);
+          }
+        });
+        frames.push(btoa(String.fromCharCode(...pixels)));
+      }
+      window.__qaFractalFrames = frames;
+      return frames.length;
+    }""")
+    frames = [base64.b64decode(val(f'window.__qaFractalFrames[{i}]')) for i in range(count)]
     if len(frames) < 2 or all(frame == frames[0] for frame in frames):
         raise ValueError('Need two distinct complete Rust/CUDA frames for the GIF')
     with tempfile.TemporaryDirectory() as path:
@@ -298,6 +303,7 @@ def main():
     try:
         fallback = args.suite.endswith('-fallback')
         config = json.loads((ROOT/'qa/chromium.json').read_text())
+        config['outputDir'] = str(OUT / 'session')
         if fallback:
             config['browser']['launchOptions']['args'] = ['--enable-features=WebAssemblyJSPI', '--disable-gpu', '--disable-software-rasterizer', '--disable-features=WebGPUService']
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json') as f:
