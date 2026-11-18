@@ -162,7 +162,10 @@ export async function prepareRust({
     activeFile,
     source(activeFile),
     (code) => {
-      if (!syncing) workspace.writeFile(activeFile, code);
+      if (!syncing) {
+        workspace.writeFile(activeFile, code);
+        queueLink();
+      }
     },
   );
   function syncEditor() {
